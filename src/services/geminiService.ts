@@ -70,7 +70,7 @@ Quy tắc Thông tư 27:
 - Mức H/HT: Ghi nhận sự cố gắng, tiến bộ của học sinh.
 - Mức C/CCG: Nhắc nhở nhẹ nhàng, đưa ra lời khuyên cụ thể để khắc phục hạn chế.
 - ${config?.includeName ? `Tên học sinh là "${studentName}". Hãy lồng ghép tên em vào câu nhận xét một cách thân thiện.` : `TUYỆT ĐỐI KHÔNG được lồng ghép tên học sinh vào câu nhận xét.`}
-- Luôn trả lời bằng Tiếng Việt. Tránh lặp lại các mẫu câu sáo rỗng.
+- Luôn trả lời bằng Tiếng Việt. TUYỆT ĐỐI KHÔNG dùng từ "Học khá" hoặc "Tiếp thu bài" một cách máy móc. Tránh các cụm từ sáo rỗng như "Hoàn thành các bài tập", "Có ý thức học tập", "Nỗ lực nhiều". Hãy dùng các cụm từ linh hoạt và sinh động hơn như "Nắm vững kiến thức trọng tâm", "Diễn đạt rõ ràng và tự tin", "Có chiều sâu trong tư duy", "Chủ động tham gia xây dựng bài".
 ${config?.foundationalComments?.length ? `- Sử dụng các ý tưởng và văn phong từ những nhận xét mẫu sau đây làm NỀN TẢNG để sáng tạo (nhưng không chép y hệt): \n${config.foundationalComments.map(c => `  + ${c}`).join('\n')}` : ""}
 `;
 
@@ -134,13 +134,14 @@ Quy tắc nội dung (Thông tư 27):
    - CK1/CK2: Tổng kết năng lực, phẩm chất và định hướng lâu dài.
 2. Mức đánh giá & Điểm số:
    - Tốt (T/HTT) & Điểm 9,10: Khen ngợi sự hào hứng, sáng tạo, nắm vững kiến thức nâng cao.
-   - Tốt/Hoàn thành (T/H) & Điểm 7,8: Khen ngợi sự chắc chắn, cẩn thận, nắm vững kiến thức và kỹ năng môn học. 
-   - Hoàn thành (H/HT) & Điểm 5,6: Ghi nhận sự cố gắng, nhắc nhở rèn luyện thêm một vài kỹ năng cụ thể.
-   - Chưa hoàn thành (C/CCG) & Điểm <5: Nêu giải pháp khắc phục cụ thể, nhẹ nhàng, truyền động lực.
+   - Khá - Tốt & Điểm 7,8: Khen ngợi sự chắc chắn, cẩn thận, nắm vững kiến thức và kỹ năng môn học. 
+   - Đạt (H/HT) & Điểm 5,6: Ghi nhận sự cố gắng, nhắc nhở rèn luyện thêm một vài kỹ năng cụ thể.
+   - Cần cố gắng (C/CCG) & Điểm <5: Nêu giải pháp khắc phục cụ thể, nhẹ nhàng, truyền động lực.
 
 3. Thuật toán Đa dạng (BẮT BUỘC):
    - ${globalConfig?.includeName ? `Luôn đảo thứ tự các thành phần: [Tên em] + [Khen ngợi] + [Tiến tới]; hoặc [Lời khen chung] + [Tên em] + [Điểm sáng cụ thể].` : `TUYỆT ĐỐI KHÔNG được dùng tên học sinh. Hãy tập trung vào đánh giá năng lực và thái độ.`}
    - Sử dụng đa dạng các từ nối: "bên cạnh đó", "đặc biệt em rất", "không chỉ vậy", "cô/thầy nhận thấy", "đáng khen ngợi là".
+   - Tránh các cụm từ máy móc như "Tiếp thu bài nhanh", "Có ý thức". Hãy dùng các cách diễn đạt tự nhiên và cụ thể hơn: "Em nắm vững các kĩ năng...", "Thực hành thuần thục...", "Tư duy linh hoạt...", "Biết cách vận dụng kiến thức...".
    - Không được dùng quá 2 lần cùng một kiểu mở đầu trong một danh sách.
 ${globalConfig?.foundationalComments?.length ? `- LẤY CẢM HỨNG từ phong cách và nội dung của các nhận xét mẫu này để đa dạng hóa câu từ: \n${globalConfig.foundationalComments.map(c => `  + ${c}`).join('\n')}` : ""}
 `;

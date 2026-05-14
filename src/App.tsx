@@ -29,6 +29,7 @@ import {
   MessageSquare,
   Search,
   Star,
+  Sparkles,
   Settings,
   BookOpen,
   Edit3,
@@ -60,10 +61,11 @@ interface CustomSelectProps {
   placeholder?: string;
   icon?: React.ReactNode;
   label?: string;
-  variant?: 'default' | 'blue';
+  variant?: 'default' | 'blue' | 'orange' | 'green';
+  samples?: Record<string, any>;
 }
 
-function CustomSelect({ value, onChange, options, placeholder = "-- Chọn --", icon, label, variant = 'default' }: CustomSelectProps) {
+function CustomSelect({ value, onChange, options, placeholder = "-- Chọn --", icon, label, variant = 'default', samples }: CustomSelectProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const containerRef = useRef<HTMLDivElement>(null);
@@ -83,24 +85,48 @@ function CustomSelect({ value, onChange, options, placeholder = "-- Chọn --", 
     return options.filter(opt => opt.toLowerCase().includes(searchTerm.toLowerCase()));
   }, [options, searchTerm]);
 
+  const getVariantStyles = () => {
+    switch (variant) {
+      case 'blue': return "border-blue-100 hover:border-blue-300 text-blue-700 bg-blue-50/30";
+      case 'orange': return "border-orange-100 hover:border-orange-300 text-orange-700 bg-orange-50/30";
+      case 'green': return "border-green-100 hover:border-green-300 text-green-700 bg-green-50/30";
+      default: return "border-gray-100 hover:border-blue-200 text-gray-700 bg-white";
+    }
+  };
+
+  const getLabelColor = () => {
+    switch (variant) {
+      case 'blue': return "text-blue-500";
+      case 'orange': return "text-orange-500";
+      case 'green': return "text-green-500";
+      default: return "text-gray-400";
+    }
+  };
+
   return (
     <div className="relative flex flex-col gap-1 w-full" ref={containerRef}>
-      {label && <span className={cn("text-[9px] font-bold uppercase", variant === 'blue' ? "text-blue-500" : "text-gray-400")}>{label}</span>}
+      {label && <span className={cn("text-[9px] font-bold uppercase tracking-wider", getLabelColor())}>{label}</span>}
       <button
         type="button"
         onClick={() => { setIsOpen(!isOpen); if (!isOpen) setSearchTerm(""); }}
         className={cn(
-          "w-full flex items-center justify-between gap-2 border rounded-lg px-2.5 py-1.5 text-[11px] font-medium transition-all outline-none text-left",
-          isOpen ? "border-blue-500 ring-4 ring-blue-50 bg-white" : 
-          variant === 'blue' ? "bg-white border-blue-200 hover:border-blue-300" : "bg-white border-gray-100 hover:border-blue-200",
+          "w-full flex items-center justify-between gap-2 border rounded-xl px-3 py-2 text-[11px] font-medium transition-all outline-none text-left shadow-sm",
+          isOpen ? "border-blue-500 ring-4 ring-blue-50 bg-white" : getVariantStyles(),
           !value && "text-gray-400"
         )}
       >
-        <div className="flex items-center gap-2 min-w-0">
-          {icon && <span className={variant === 'blue' ? "text-blue-500" : "text-gray-400"}>{icon}</span>}
-          <span className="break-words">{value || placeholder}</span>
+        <div className="flex items-center gap-2 min-w-0 flex-grow">
+          {icon && <span className={cn("flex-shrink-0", getLabelColor())}>{icon}</span>}
+          <div className="flex flex-col min-w-0">
+            <span className="truncate">{value || placeholder}</span>
+            {value && samples && samples[value] && (
+              <span className="text-[8px] text-gray-400 truncate opacity-80 leading-none mt-0.5">
+                VD: {String(samples[value])}
+              </span>
+            )}
+          </div>
         </div>
-        <ChevronDown size={12} className={cn("text-gray-400 transition-transform flex-shrink-0", isOpen && "rotate-180")} />
+        <ChevronDown size={12} className={cn("text-gray-400 transition-transform flex-shrink-0 ml-auto", isOpen && "rotate-180")} />
       </button>
 
       <AnimatePresence>
@@ -109,43 +135,51 @@ function CustomSelect({ value, onChange, options, placeholder = "-- Chọn --", 
             initial={{ opacity: 0, y: -5, scale: 0.98 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -5, scale: 0.98 }}
-            className="absolute left-0 right-0 top-full mt-1 bg-white border border-gray-200 rounded-xl shadow-2xl z-[100] overflow-hidden flex flex-col max-h-[250px]"
+            className="absolute left-0 right-0 top-full mt-2 bg-white border border-gray-200 rounded-2xl shadow-2xl z-[100] overflow-hidden flex flex-col max-h-[300px] ring-1 ring-black/5"
           >
-            {options.length > 8 && (
-              <div className="p-2 border-b border-gray-50 flex items-center gap-2 bg-gray-50/50">
-                <Search size={12} className="text-gray-400" />
-                <input 
-                  autoFocus
-                  type="text"
-                  placeholder="Tìm cột..."
-                  className="bg-transparent border-none outline-none text-[10px] w-full"
-                  value={searchTerm}
-                  onChange={e => setSearchTerm(e.target.value)}
-                  onClick={e => e.stopPropagation()}
-                />
-              </div>
-            )}
+            <div className="p-2 border-b border-gray-50 flex items-center gap-2 bg-gray-50/50">
+              <Search size={12} className="text-gray-400" />
+              <input 
+                autoFocus
+                type="text"
+                placeholder="Tìm cột..."
+                className="bg-transparent border-none outline-none text-[10px] w-full py-1"
+                value={searchTerm}
+                onChange={e => setSearchTerm(e.target.value)}
+                onClick={e => e.stopPropagation()}
+              />
+            </div>
             <div className="overflow-y-auto py-1 table-container">
               <button
                 onClick={() => { onChange(""); setIsOpen(false); }}
-                className="w-full text-left px-3 py-1.5 text-[10px] hover:bg-gray-50 text-gray-400 italic"
+                className="w-full text-left px-4 py-2 text-[10px] hover:bg-gray-50 text-gray-400 italic"
               >
                 -- {placeholder} --
               </button>
               {filteredOptions.length === 0 && (
-                <div className="px-3 py-2 text-[10px] text-gray-400 text-center">Không tìm thấy cột</div>
+                <div className="px-4 py-4 text-[10px] text-gray-400 text-center flex flex-col items-center gap-2">
+                  <Search size={24} className="opacity-20" />
+                  Không tìm thấy cột "{searchTerm}"
+                </div>
               )}
               {filteredOptions.map((opt) => (
                 <button
                   key={opt}
                   onClick={() => { onChange(opt); setIsOpen(false); }}
                   className={cn(
-                    "w-full text-left px-3 py-1.5 text-[11px] transition-colors flex items-center justify-between group",
+                    "w-full text-left px-4 py-2.5 text-[11px] transition-colors flex items-center justify-between group border-b border-gray-50 last:border-0",
                     value === opt ? "bg-blue-50 text-blue-700 font-bold" : "hover:bg-blue-50/50"
                   )}
                 >
-                  <span className="break-words">{opt}</span>
-                  {value === opt && <FileCheck size={10} className="text-blue-500" />}
+                  <div className="flex flex-col min-w-0 pr-4">
+                    <span className="truncate">{opt}</span>
+                    {samples && samples[opt] && (
+                      <span className="text-[9px] text-gray-400 font-normal truncate">
+                         {String(samples[opt])}
+                      </span>
+                    )}
+                  </div>
+                  {value === opt && <FileCheck size={12} className="text-blue-500 flex-shrink-0" />}
                 </button>
               ))}
             </div>
@@ -164,6 +198,7 @@ const removeAccents = (str: string) => {
 export default function App() {
   const [rawDataAOA, setRawDataAOA] = useState<any[][]>([]);
   const [headers, setHeaders] = useState<string[]>([]);
+  const [sampleRow, setSampleRow] = useState<Record<string, any>>({});
   const [headerRowIndex, setHeaderRowIndex] = useState(-1);
   const [studentsData, setStudentsData] = useState<StudentData[]>([]);
   const [workbook, setWorkbook] = useState<XLSX.WorkBook | null>(null);
@@ -180,8 +215,6 @@ export default function App() {
   const [colMapping, setColMapping] = useState({
     name: "",
     studentId: "",
-    gender: "",
-    teacher: "",
     periods: {
       GK1: { score: "", level: "", comment: "" },
       CK1: { score: "", level: "", comment: "" },
@@ -191,6 +224,7 @@ export default function App() {
   });
   const [autoLevel, setAutoLevel] = useState(true);
   const [useAI, setUseAI] = useState(false);
+  const [overwriteExisting, setOverwriteExisting] = useState(true);
   const [aiConfig, setAIConfig] = useState<AIConfig>({
     tone: "encouraging",
     length: "medium",
@@ -202,7 +236,8 @@ export default function App() {
   const [isRegeneratingSingle, setIsRegeneratingSingle] = useState(false);
   const [avoidKeywordsInput, setAvoidKeywordsInput] = useState("");
   const [managingLibrary, setManagingLibrary] = useState(false);
-  const [personalComments, setPersonalComments] = useState<{text: string, category: string}[]>([]);
+  const [editingPersonalId, setEditingPersonalId] = useState<string | null>(null);
+  const [personalComments, setPersonalComments] = useState<{id: string, text: string, category: string}[]>([]);
   const [personalSearch, setPersonalSearch] = useState("");
   const [personalCategoryFilter, setPersonalCategoryFilter] = useState("Tất cả");
   const [newPersonalText, setNewPersonalText] = useState("");
@@ -270,23 +305,42 @@ export default function App() {
   };
 
   useEffect(() => {
-    const savedPersonal = localStorage.getItem('report_helper_personal_comments_v2');
-    if (savedPersonal) {
+    const savedPersonalId = localStorage.getItem('report_helper_personal_comments_v2_id');
+    if (savedPersonalId) {
       try {
-        setPersonalComments(JSON.parse(savedPersonal));
+        setPersonalComments(JSON.parse(savedPersonalId));
       } catch (e) {
-        console.error("Error loading personal comments", e);
+        console.error("Error loading personal comments with IDs", e);
       }
     } else {
-      // Migrate from old format if exists
-      const oldSaved = localStorage.getItem('report_helper_personal_comments');
-      if (oldSaved) {
+      // Migrate from old format (v2 no id)
+      const v2Saved = localStorage.getItem('report_helper_personal_comments_v2');
+      if (v2Saved) {
         try {
-          const oldList: string[] = JSON.parse(oldSaved);
-          const migrated = oldList.map(t => ({ text: t, category: "Chung" }));
+          const oldList: {text: string, category: string}[] = JSON.parse(v2Saved);
+          const migrated = oldList.map((c, i) => ({ 
+            id: `pc_migrated_${Date.now()}_${i}`, 
+            text: c.text, 
+            category: c.category || "Chung" 
+          }));
           setPersonalComments(migrated);
-          localStorage.setItem('report_helper_personal_comments_v2', JSON.stringify(migrated));
+          localStorage.setItem('report_helper_personal_comments_v2_id', JSON.stringify(migrated));
         } catch(e) {}
+      } else {
+        // Migrate from even older format
+        const oldSaved = localStorage.getItem('report_helper_personal_comments');
+        if (oldSaved) {
+          try {
+            const oldList: string[] = JSON.parse(oldSaved);
+            const migrated = oldList.map((t, i) => ({ 
+              id: `pc_migrated_old_${Date.now()}_${i}`, 
+              text: t, 
+              category: "Chung" 
+            }));
+            setPersonalComments(migrated);
+            localStorage.setItem('report_helper_personal_comments_v2_id', JSON.stringify(migrated));
+          } catch(e) {}
+        }
       }
     }
 
@@ -368,20 +422,57 @@ export default function App() {
   const savePersonalComment = (comment: string, category: string = "Chung") => {
     const clean = comment.trim();
     if (!clean) return;
-    if (personalComments.some(c => c.text === clean)) {
-      showToast("Nhận xét này đã có trong thư viện cá nhân", "error");
+    
+    // Prevent duplicates in the same category
+    if (personalComments.some(c => c.text === clean && c.category === category)) {
+      showToast("Nhận xét này đã có trong nhóm " + category, "error");
       return;
     }
-    const newList = [{ text: clean, category }, ...personalComments];
+    
+    const newComment = { 
+      id: `pc_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`, 
+      text: clean, 
+      category 
+    };
+    const newList = [newComment, ...personalComments];
     setPersonalComments(newList);
-    localStorage.setItem('report_helper_personal_comments_v2', JSON.stringify(newList));
+    localStorage.setItem('report_helper_personal_comments_v2_id', JSON.stringify(newList));
     showToast(`Đã lưu vào mục ${category}!`);
   };
 
-  const deletePersonalComment = (commentText: string) => {
-    const newList = personalComments.filter(c => c.text !== commentText);
+  const updatePersonalComment = (id: string, text: string, category: string) => {
+    const originalComment = personalComments.find(c => c.id === id);
+    const newList = personalComments.map(c => 
+      c.id === id ? { ...c, text, category } : c
+    );
     setPersonalComments(newList);
-    localStorage.setItem('report_helper_personal_comments_v2', JSON.stringify(newList));
+    localStorage.setItem('report_helper_personal_comments_v2_id', JSON.stringify(newList));
+
+    // Update foundational comments if this one was selected
+    if (originalComment && aiConfig.foundationalComments?.includes(originalComment.text)) {
+      setAIConfig(prev => ({
+        ...prev,
+        foundationalComments: (prev.foundationalComments || []).map(t => 
+          t === originalComment.text ? text : t
+        )
+      }));
+    }
+  };
+
+  const deletePersonalComment = (id: string) => {
+    const originalComment = personalComments.find(c => c.id === id);
+    const newList = personalComments.filter(c => c.id !== id);
+    setPersonalComments(newList);
+    localStorage.setItem('report_helper_personal_comments_v2_id', JSON.stringify(newList));
+    
+    // Remove from foundational comments if selected
+    if (originalComment && aiConfig.foundationalComments?.includes(originalComment.text)) {
+      setAIConfig(prev => ({
+        ...prev,
+        foundationalComments: (prev.foundationalComments || []).filter(t => t !== originalComment.text)
+      }));
+    }
+    
     showToast("Đã xóa khỏi thư viện cá nhân");
   };
 
@@ -427,6 +518,18 @@ export default function App() {
 
         const h = aoa[hIdx].map((val, i) => val ? String(val).trim() : `Column_${i}`);
         setHeaders(h);
+
+        // Get sample data (first valid row after header)
+        let sample: Record<string, any> = {};
+        for (let i = hIdx + 1; i < aoa.length; i++) {
+          if (aoa[i].some((c: any) => c !== "")) {
+            h.forEach((col, idx) => {
+              sample[col] = aoa[i][idx] || "";
+            });
+            break;
+          }
+        }
+        setSampleRow(sample);
 
         // Auto detect config from file name and headers
         const cleanName = removeAccents(file.name.toLowerCase());
@@ -503,8 +606,6 @@ export default function App() {
               const sm = saved.colMapping;
               if (sm.name && hSet.has(sm.name)) mapping.name = sm.name;
               if (sm.studentId && hSet.has(sm.studentId)) mapping.studentId = sm.studentId;
-              if (sm.gender && hSet.has(sm.gender)) mapping.gender = sm.gender;
-              if (sm.teacher && hSet.has(sm.teacher)) mapping.teacher = sm.teacher;
               
               (["GK1", "CK1", "GK2", "CK2"] as const).forEach(p => {
                 if (sm.periods[p].score && hSet.has(sm.periods[p].score)) mapping.periods[p].score = sm.periods[p].score;
@@ -565,8 +666,6 @@ export default function App() {
     const mapping = {
       name: "", 
       studentId: "", 
-      gender: "", 
-      teacher: "",
       periods: {
         GK1: { score: "", level: "", comment: "" },
         CK1: { score: "", level: "", comment: "" },
@@ -607,8 +706,6 @@ export default function App() {
     // Global fields
     mapping.name = findBestMatch(h, ["Họ và tên", "Họ tên", "Tên học sinh", "Họ tên học sinh", "Tên", "Full Name", "Student Name", "Name", "Ho va Ten", "First Name", "Last Name"]);
     mapping.studentId = findBestMatch(h, ["Mã học sinh", "Mã số học sinh", "Mã số", "MSHS", "Mã HS", "Số hiệu", "Mã định danh", "Mã định danh học sinh", "Mã định danh cá nhân", "ID", "Student ID", "SIS ID", "Ma HS", "Ma so HS"]);
-    mapping.gender = findBestMatch(h, ["Giới tính", "Phái", "Nam / Nữ", "Nam/Nữ", "Nữ", "Nam", "GT", "G.Tính", "Gender", "Sex", "Gioi tinh"]);
-    mapping.teacher = findBestMatch(h, ["Giáo viên", "Giáo viên chủ nhiệm", "GVCN", "GV giảng dạy", "Người chấm", "Thành viên chấm", "Thầy/Cô", "GV", "Instructor", "Teacher", "Giao vien", "Giao vien chu nhiem"]);
 
     // Period specific fields
     let lastDetectedPeriod: "GK1" | "CK1" | "GK2" | "CK2" | null = null;
@@ -673,8 +770,6 @@ export default function App() {
     setColMapping({
       name: "",
       studentId: "",
-      gender: "",
-      teacher: "",
       periods: {
         GK1: { score: "", level: "", comment: "" },
         CK1: { score: "", level: "", comment: "" },
@@ -708,8 +803,6 @@ export default function App() {
             const hSet = new Set(headers);
             if (mapped.name && !hSet.has(mapped.name)) mapped.name = "";
             if (mapped.studentId && !hSet.has(mapped.studentId)) mapped.studentId = "";
-            if (mapped.gender && !hSet.has(mapped.gender)) mapped.gender = "";
-            if (mapped.teacher && !hSet.has(mapped.teacher)) mapped.teacher = "";
             
             (["GK1", "CK1", "GK2", "CK2"] as const).forEach(p => {
               if (mapped.periods[p].score && !hSet.has(mapped.periods[p].score)) mapped.periods[p].score = "";
@@ -777,8 +870,6 @@ export default function App() {
     
     if (colMapping.name && !hSet.has(colMapping.name)) missing.push(`Họ tên (${colMapping.name})`);
     if (colMapping.studentId && !hSet.has(colMapping.studentId)) missing.push(`Mã số (${colMapping.studentId})`);
-    if (colMapping.gender && !hSet.has(colMapping.gender)) missing.push(`Giới tính (${colMapping.gender})`);
-    if (colMapping.teacher && !hSet.has(colMapping.teacher)) missing.push(`Giáo viên (${colMapping.teacher})`);
 
     const activePeriods = Array.from(selectedPeriods);
     activePeriods.forEach(p => {
@@ -811,6 +902,9 @@ export default function App() {
       selectedPeriods.forEach(period => {
         const pMap = colMapping.periods[period];
         if (!pMap.comment) return;
+
+        // Skip if not overwriting and already has content
+        if (!overwriteExisting && String(updatedStudent[pMap.comment] || "").trim()) return;
 
         const { comment } = generateSingleComment(s, period);
         updatedStudent[pMap.comment] = comment;
@@ -880,7 +974,15 @@ export default function App() {
         const studentsToRequest: GenerateCommentParams[] = updatedStudents
           .filter(s => {
             const name = String(s[colMapping.name] || "").trim();
-            return name && !name.toLowerCase().includes('tổng');
+            if (!name || name.toLowerCase().includes('tổng')) return false;
+            
+            // If not overwriting, only include if current comment column is empty
+            if (!overwriteExisting) {
+              const currentComment = String(s[pMap.comment] || "").trim();
+              if (currentComment) return false;
+            }
+            
+            return true;
           })
           .map(s => {
             const scoreStr = pMap.score ? String(s[pMap.score]).replace(',', '.') : "";
@@ -912,6 +1014,14 @@ export default function App() {
         updatedStudents = updatedStudents.map(s => {
           const name = String(s[colMapping.name] || "").trim();
           if (!name || name.toLowerCase().includes('tổng')) return s;
+
+          // Check if this student was skipped due to existing comment
+          if (!overwriteExisting) {
+            const currentComment = String(s[pMap.comment] || "").trim();
+            if (currentComment) return s;
+          }
+
+          if (resultIdx >= results.length) return s;
 
           const comment = results[resultIdx++];
           let updated = { ...s, [pMap.comment]: comment };
@@ -1150,53 +1260,73 @@ export default function App() {
             "bg-white rounded-2xl shadow-sm border border-gray-100 p-6 lg:col-span-2 flex flex-col gap-6 transition-all",
             !originalFileName && "opacity-50 pointer-events-none grayscale"
           )}>
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <div className="flex items-center gap-3">
-                <div className="bg-blue-50 text-blue-600 w-8 h-8 rounded-full flex items-center justify-center font-bold">2</div>
-                <h2 className="font-semibold text-gray-700">Cấu hình & Tùy chọn</h2>
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="bg-blue-50 text-blue-600 w-8 h-8 rounded-full flex items-center justify-center font-bold">2</div>
+                  <h2 className="font-semibold text-gray-700">Cấu hình & Tùy chọn</h2>
+                </div>
+                
+                {/* Status Indicator */}
+                <div className="flex items-center gap-4 bg-gray-50 px-3 py-1.5 rounded-xl border border-gray-100">
+                  <div className="flex items-center gap-2">
+                    <div className={cn("w-2 h-2 rounded-full", colMapping.name ? "bg-green-500 shadow-sm shadow-green-200" : "bg-red-400 blur-[1px]")} />
+                    <span className="text-[10px] font-bold text-gray-500 uppercase leading-none">Vắn tắt</span>
+                  </div>
+                  <div className="h-4 w-[1px] bg-gray-200" />
+                  <div className="flex items-center gap-2">
+                    <div className={cn("w-2 h-2 rounded-full", selectedPeriods.size > 0 ? "bg-green-500 shadow-sm shadow-green-200" : "bg-red-400 blur-[1px]")} />
+                    <span className="text-[10px] font-bold text-gray-500 uppercase leading-none">Kỳ học</span>
+                  </div>
+                  <div className="h-4 w-[1px] bg-gray-200" />
+                  <button 
+                    onClick={processComments}
+                    disabled={isGeneratingAI}
+                    className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white px-4 py-1.5 rounded-lg text-xs font-bold flex items-center gap-2 transition shadow-lg shadow-blue-100 active:scale-95"
+                  >
+                    {isGeneratingAI ? <RefreshCw size={12} className="animate-spin" /> : <Wand2 size={12} />}
+                    Tạo ngay
+                  </button>
+                </div>
               </div>
-              <button 
-                onClick={processComments}
-                className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-xl font-semibold flex items-center justify-center gap-2 transition shadow-lg shadow-blue-200 active:scale-95 pulse-animation"
-              >
-                <Wand2 size={18} />
-                Tạo nhận xét tự động
-              </button>
-            </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {/* Subject & Grade */}
-              <div className="bg-gray-50/50 p-4 rounded-xl border border-gray-100 border-dashed flex flex-col gap-3">
+              <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex flex-col gap-5">
                 <div>
-                  <label className="flex items-center gap-2 text-[10px] font-bold text-gray-400 uppercase mb-2">
-                    <Book size={12} className="text-blue-500" />
-                    Môn học
+                  <label className="flex items-center gap-2 text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3">
+                    <BookOpen size={14} className="text-blue-500" />
+                    1. Môn học đang xử lý
                   </label>
                   <CustomSelect 
                     value={subject}
                     onChange={setSubject}
                     options={Object.keys(ALL_SUBJECTS_BANK)}
                     placeholder="Chọn môn học"
+                    variant="blue"
+                    icon={<Book size={14} />}
                   />
+                  <p className="text-[9px] text-gray-400 mt-2 px-1 italic">Hệ thống sẽ lấy câu mẫu từ môn này trong thư viện.</p>
                 </div>
+
                 <div>
-                  <label className="flex items-center gap-2 text-[10px] font-bold text-gray-400 uppercase mb-2">
-                    <Users size={12} className="text-purple-500" />
-                    Khối lớp
+                  <label className="flex items-center gap-2 text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3">
+                    <GraduationCap size={14} className="text-purple-500" />
+                    2. Khối lớp
                   </label>
-                  <div className="flex flex-wrap gap-2">
+                  <div className="grid grid-cols-3 gap-2">
                     {["1", "2", "3", "4", "5", "general"].map(level => (
                       <button
                         key={level}
                         onClick={() => setGradeLevel(level)}
                         className={cn(
-                          "px-2.5 py-1 rounded-md text-xs font-semibold border transition-all",
+                          "px-2 py-2 rounded-xl text-[10px] font-bold border transition-all flex flex-col items-center justify-center gap-1",
                           gradeLevel === level 
-                            ? "bg-purple-600 border-purple-600 text-white shadow-sm"
-                            : "bg-white border-gray-200 text-gray-500 hover:border-purple-200"
+                            ? "bg-purple-600 border-purple-600 text-white shadow-md shadow-purple-100 scale-[1.02]"
+                            : "bg-gray-50 border-gray-100 text-gray-500 hover:border-purple-200 hover:bg-white"
                         )}
                       >
-                        {level === "general" ? "Chung" : `Lớp ${level}`}
+                        <span className="opacity-80">Khối</span>
+                        <span className="text-xs">{level === "general" ? "Chung" : level}</span>
                       </button>
                     ))}
                   </div>
@@ -1204,36 +1334,41 @@ export default function App() {
               </div>
 
               {/* Period & Toggles */}
-              <div className="bg-gray-50/50 p-4 rounded-xl border border-gray-100 border-dashed flex flex-col gap-4">
+              <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex flex-col gap-5">
                 <div>
-                  <label className="flex items-center gap-2 text-[10px] font-bold text-gray-400 uppercase mb-2">
-                    <Calendar size={12} className="text-orange-500" />
-                    Kỳ đánh giá (Đa chọn)
+                  <label className="flex items-center gap-2 text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3">
+                    <Calendar size={14} className="text-orange-500" />
+                    3. Kỳ đánh giá
                   </label>
                   <div className="grid grid-cols-2 gap-2">
                     {(["GK1", "CK1", "GK2", "CK2"] as const).map((period) => (
-                      <label 
+                      <button 
                         key={period}
+                        onClick={() => {
+                          const newSet = new Set(selectedPeriods);
+                          if (newSet.has(period)) newSet.delete(period);
+                          else newSet.add(period);
+                          setSelectedPeriods(newSet);
+                        }}
                         className={cn(
-                          "flex items-center justify-between px-3 py-2 rounded-lg border cursor-pointer transition-all",
+                          "flex items-center justify-between px-3 py-2.5 rounded-xl border transition-all group relative overflow-hidden",
                           selectedPeriods.has(period) 
-                            ? "bg-orange-50 border-orange-200 text-orange-700 shadow-sm" 
-                            : "bg-white border-gray-100 text-gray-400 hover:border-orange-100"
+                            ? "bg-orange-50 border-orange-200 text-orange-700 shadow-sm ring-1 ring-orange-100" 
+                            : "bg-gray-50 border-gray-100 text-gray-400 hover:border-orange-200 hover:bg-white"
                         )}
                       >
-                        <span className="text-xs font-bold">{period}</span>
-                        <input 
-                          type="checkbox" 
-                          className="w-3 h-3 rounded text-orange-500 border-gray-300 focus:ring-orange-400"
-                          checked={selectedPeriods.has(period)}
-                          onChange={(e) => {
-                            const newSet = new Set(selectedPeriods);
-                            if (e.target.checked) newSet.add(period);
-                            else newSet.delete(period);
-                            setSelectedPeriods(newSet);
-                          }}
-                        />
-                      </label>
+                        <div className="flex flex-col items-start min-w-0">
+                          <span className="text-[10px] font-black">{period}</span>
+                          <span className="text-[8px] opacity-70 whitespace-nowrap overflow-hidden text-ellipsis">
+                            {period.startsWith('G') ? 'Giữa kỳ' : 'Cuối kỳ'} {period.endsWith('1') ? 'I' : 'II'}
+                          </span>
+                        </div>
+                        {selectedPeriods.has(period) ? (
+                          <CheckCircle size={14} className="text-orange-500" />
+                        ) : (
+                          <PlusCircle size={14} className="text-gray-200 group-hover:text-orange-300" />
+                        )}
+                      </button>
                     ))}
                   </div>
                 </div>
@@ -1246,6 +1381,15 @@ export default function App() {
                       className="w-4 h-4 rounded text-blue-600 border-gray-300 focus:ring-blue-500"
                     />
                     <span className="text-xs text-gray-600 font-medium group-hover:text-blue-600 transition-colors cursor-help" title="Áp dụng cho CK1, CK2: >=7: T, >=5: H, <5: C">Tự điền cột Mức (T, H, C) từ Điểm số</span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer group">
+                    <input 
+                      type="checkbox" 
+                      checked={overwriteExisting} 
+                      onChange={e => setOverwriteExisting(e.target.checked)}
+                      className="w-4 h-4 rounded text-orange-600 border-gray-300 focus:ring-orange-500"
+                    />
+                    <span className="text-xs text-gray-600 font-medium group-hover:text-orange-600 transition-colors">Ghi đè lên các nhận xét đã có sẵn</span>
                   </label>
                   <label className="flex items-center gap-2 cursor-pointer group">
                     <input 
@@ -1398,6 +1542,21 @@ export default function App() {
                                   </div>
                                   <span className="text-[9px] leading-tight text-gray-700 line-clamp-3">{c.text}</span>
                                 </div>
+                                {(c as any).id && c.type === 'personal' && (
+                                  <button 
+                                    onClick={(e) => {
+                                      e.preventDefault();
+                                      e.stopPropagation();
+                                      if (confirm("Xóa nhận xét này khỏi thư viện?")) {
+                                        deletePersonalComment((c as any).id);
+                                      }
+                                    }}
+                                    className="ml-auto p-1 text-gray-300 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100"
+                                    title="Xóa khỏi thư viện"
+                                  >
+                                    <Trash2 size={10} />
+                                  </button>
+                                )}
                               </label>
                             ))}
                           </div>
@@ -1417,115 +1576,154 @@ export default function App() {
               </div>
 
               {/* Column Mapping */}
-              <div className="bg-blue-50 p-4 rounded-xl border border-blue-100 flex flex-col gap-2 relative">
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-[10px] font-black text-blue-700 uppercase tracking-widest italic">Ánh xạ cột Excel</span>
+              <div className="bg-blue-50/50 p-5 rounded-2xl border border-blue-100 flex flex-col gap-4 relative">
+                <div className="flex items-center justify-between">
+                  <div className="flex flex-col">
+                    <span className="text-[10px] font-black text-blue-700 uppercase tracking-widest italic">Ánh xạ cột Excel</span>
+                    <span className="text-[9px] text-blue-400 font-medium">Kết nối tiêu đề file với hệ thống</span>
+                  </div>
                   <div className="flex items-center gap-1">
                     <button 
                       onClick={saveAsDefault}
-                      className="flex items-center gap-1.5 px-2 py-1 bg-green-600 hover:bg-green-700 text-white text-[9px] font-bold rounded-md transition-all shadow-sm active:scale-95"
+                      className="inline-flex items-center justify-center h-7 px-2.5 bg-white hover:bg-green-50 text-green-600 border border-green-100 text-[9px] font-bold rounded-lg transition-all shadow-sm"
                       title="Lưu ánh xạ hiện tại làm mặc định"
                     >
-                      <Save size={10} />
-                      Lưu
+                      <Save size={10} className="mr-1" />
+                      Lưu mẫu
                     </button>
                     <button 
                       onClick={loadDefault}
-                      className="flex items-center gap-1.5 px-2 py-1 bg-amber-500 hover:bg-amber-600 text-white text-[9px] font-bold rounded-md transition-all shadow-sm active:scale-95"
+                      className="inline-flex items-center justify-center h-7 px-2.5 bg-white hover:bg-amber-50 text-amber-600 border border-amber-100 text-[9px] font-bold rounded-lg transition-all shadow-sm"
                       title="Tải cấu hình mặc định đã lưu"
                     >
-                      <RotateCcw size={10} />
+                      <RotateCcw size={10} className="mr-1" />
                       Tải mẫu
                     </button>
                     <button 
                       onClick={autoMap}
-                      className="flex items-center gap-1.5 px-2 py-1 bg-blue-600 hover:bg-blue-700 text-white text-[9px] font-bold rounded-md transition-all shadow-sm active:scale-95"
+                      className="inline-flex items-center justify-center h-7 px-2.5 bg-blue-600 hover:bg-blue-700 text-white text-[9px] font-bold rounded-lg transition-all shadow-sm"
                       title="Tự động nhận diện cột"
                     >
-                      <RefreshCw size={10} />
+                      <RefreshCw size={10} className="mr-1" />
                       Tự động
                     </button>
                     <button 
                       onClick={clearMappings}
-                      className="flex items-center gap-1.5 px-2 py-1 bg-white hover:bg-red-50 text-red-500 border border-red-100 text-[9px] font-bold rounded-md transition-all shadow-sm active:scale-95"
+                      className="inline-flex items-center justify-center h-7 px-2.5 bg-white hover:bg-red-50 text-red-500 border border-red-100 text-[9px] font-bold rounded-lg transition-all shadow-sm"
                       title="Xóa tất cả ánh xạ"
                     >
-                      <Trash2 size={10} />
+                      <Trash2 size={10} className="mr-1" />
                       Xóa
                     </button>
                   </div>
                 </div>
-                <div className="space-y-1.5 overflow-y-auto pr-1">
-                  <div className="grid grid-cols-2 gap-2 mb-2 pb-2 border-b border-blue-100">
-                    <CustomSelect 
-                      label="Họ Tên"
-                      icon={<User size={12} />}
-                      variant="blue"
-                      value={colMapping.name}
-                      onChange={val => setColMapping(prev => ({...prev, name: val}))}
-                      options={headers}
-                    />
-                    <CustomSelect 
-                      label="Mã HS"
-                      icon={<Hash size={12} />}
-                      variant="blue"
-                      placeholder="Không"
-                      value={colMapping.studentId}
-                      onChange={val => setColMapping(prev => ({...prev, studentId: val}))}
-                      options={headers}
-                    />
+
+                <div className="space-y-4 overflow-y-auto pr-1 custom-scrollbar max-h-[500px]">
+                  {/* Basic Info Group */}
+                  <div className="bg-white/40 p-4 rounded-xl border border-blue-100/30">
+                    <div className="flex items-center gap-2 mb-3">
+                      <Users size={12} className="text-blue-500" />
+                      <span className="text-[10px] font-bold text-gray-500 uppercase tracking-tight">Thông tin học sinh</span>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <CustomSelect 
+                        label="Họ và Tên (Bắt buộc)"
+                        icon={<User size={12} />}
+                        variant="green"
+                        value={colMapping.name}
+                        onChange={val => setColMapping(prev => ({...prev, name: val}))}
+                        options={headers}
+                        samples={sampleRow}
+                      />
+                      <CustomSelect 
+                        label="Mã học sinh"
+                        icon={<Hash size={12} />}
+                        placeholder="Không có"
+                        value={colMapping.studentId}
+                        onChange={val => setColMapping(prev => ({...prev, studentId: val}))}
+                        options={headers}
+                        samples={sampleRow}
+                      />
+                    </div>
                   </div>
 
                   {/* Period Mappings */}
-                  <div className="flex flex-col gap-3 max-h-[300px] overflow-y-auto pb-4">
-                    {(["GK1", "CK1", "GK2", "CK2"] as const).filter(p => selectedPeriods.has(p)).map(period => (
-                      <div key={period} className="bg-white/60 p-2 rounded-lg border border-blue-200/50">
-                        <div className="flex items-center gap-2 mb-2">
-                          <div className="w-1.5 h-1.5 rounded-full bg-orange-400" />
-                          <span className="text-[10px] font-black text-orange-600">{period}</span>
-                        </div>
-                        <div className="grid grid-cols-3 gap-2">
-                          <CustomSelect 
-                            label="Điểm"
-                            icon={<Award size={10} />}
-                            placeholder="--"
-                            value={colMapping.periods[period].score}
-                            onChange={val => {
-                              const newMap = { ...colMapping };
-                              newMap.periods[period].score = val;
-                              setColMapping(newMap);
-                            }}
-                            options={headers}
-                          />
-                          <CustomSelect 
-                            label="Mức"
-                            icon={<Star size={10} />}
-                            placeholder="--"
-                            value={colMapping.periods[period].level}
-                            onChange={val => {
-                              const newMap = { ...colMapping };
-                              newMap.periods[period].level = val;
-                              setColMapping(newMap);
-                            }}
-                            options={headers}
-                          />
-                          <CustomSelect 
-                            label="N.Xét"
-                            icon={<MessageSquare size={10} />}
-                            placeholder="--"
-                            variant="blue"
-                            value={colMapping.periods[period].comment}
-                            onChange={val => {
-                              const newMap = { ...colMapping };
-                              newMap.periods[period].comment = val;
-                              setColMapping(newMap);
-                            }}
-                            options={headers}
-                          />
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                  {Array.from(selectedPeriods).length > 0 ? (
+                    <div className="space-y-3">
+                      {(["GK1", "CK1", "GK2", "CK2"] as const).filter(p => selectedPeriods.has(p)).map(period => (
+                        <motion.div 
+                          initial={{ opacity: 0, x: -10 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          key={period} 
+                          className="bg-white/80 p-4 rounded-xl border border-blue-200/50 shadow-sm"
+                        >
+                          <div className="flex items-center justify-between mb-3">
+                            <div className="flex items-center gap-2">
+                              <div className="w-2 h-2 rounded-full bg-orange-500 animate-pulse" />
+                              <span className="text-[11px] font-black text-gray-700 uppercase">Kỳ đánh giá: {period}</span>
+                            </div>
+                            <span className="text-[9px] font-bold text-orange-500 bg-orange-50 px-2 py-0.5 rounded-full border border-orange-100">Đang chọn</span>
+                          </div>
+                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                            <CustomSelect 
+                              label="Cột Điểm"
+                              icon={<Award size={10} />}
+                              placeholder="Chọn cột điểm"
+                              variant="orange"
+                              value={colMapping.periods[period].score}
+                              onChange={val => {
+                                const newMap = { ...colMapping };
+                                newMap.periods[period].score = val;
+                                setColMapping(newMap);
+                              }}
+                              options={headers}
+                              samples={sampleRow}
+                            />
+                            <CustomSelect 
+                              label="Cột Mức (T,H,C)"
+                              icon={<Star size={10} />}
+                              placeholder="Chọn cột mức"
+                              variant="orange"
+                              value={colMapping.periods[period].level}
+                              onChange={val => {
+                                const newMap = { ...colMapping };
+                                newMap.periods[period].level = val;
+                                setColMapping(newMap);
+                              }}
+                              options={headers}
+                              samples={sampleRow}
+                            />
+                            <CustomSelect 
+                              label="Ghi Nhận xét vào"
+                              icon={<MessageSquare size={10} />}
+                              placeholder="Chọn cột đích"
+                              variant="blue"
+                              value={colMapping.periods[period].comment}
+                              onChange={val => {
+                                const newMap = { ...colMapping };
+                                newMap.periods[period].comment = val;
+                                setColMapping(newMap);
+                              }}
+                              options={headers}
+                              samples={sampleRow}
+                            />
+                          </div>
+                        </motion.div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="bg-white/40 border-2 border-dashed border-blue-200 rounded-xl p-8 text-center flex flex-col items-center gap-3">
+                      <Calendar size={32} className="text-blue-300" />
+                      <p className="text-xs font-bold text-blue-500 uppercase">Vui lòng chọn kỳ đánh giá ở bảng bên trái</p>
+                      <p className="text-[10px] text-gray-400">Hệ thống sẽ hiển thị các lựa chọn ánh xạ tương ứng sau khi bạn chọn kỳ học.</p>
+                    </div>
+                  )}
+                </div>
+                
+                {/* Quick Helper */}
+                <div className="mt-2 text-[9px] text-blue-500 italic bg-blue-100/30 p-2 rounded-lg border border-blue-100 flex items-center gap-2">
+                   <HelpCircle size={10} />
+                   <span>Mẹo: Bạn có thể xem dữ liệu mẫu ngay trong ô chọn để đảm bảo chọn đúng cột.</span>
                 </div>
               </div>
             </div>
@@ -1966,8 +2164,8 @@ export default function App() {
                             cat === 'fair' ? "bg-yellow-100 text-yellow-700" : "bg-red-100 text-red-700"
                           )}>
                             {cat === 'excellent' ? 'Hoàn thành tốt (9-10)' : 
-                             cat === 'good' ? 'Khá (7-8)' : 
-                             cat === 'fair' ? 'Trung bình (5-6)' : 'Cần cố gắng (<5)'}
+                             cat === 'good' ? 'Khá - Tốt (7-8)' : 
+                             cat === 'fair' ? 'Đạt (5-6)' : 'Cần cố gắng (<5)'}
                           </div>
                           <div className="space-y-1">
                             {options.map((text, i) => (
@@ -2080,32 +2278,68 @@ export default function App() {
                     </div>
                     <div className="grid grid-cols-2 gap-2">
                       {filteredPersonal.map((item, i) => (
-                        <button
-                          key={i}
-                          onClick={() => {
-                            const newS = [...studentsData];
-                            const pMap = colMapping.periods[editingStudent.period];
-                            newS[editingStudent.idx] = {
-                              ...newS[editingStudent.idx], 
-                              [pMap.comment]: item.text
-                            };
-                            setStudentsData(newS);
-                            showToast("Đã chọn từ thư viện cá nhân");
-                          }}
-                          className="w-full text-left p-2.5 rounded-xl border border-pink-100 text-[10px] hover:border-pink-300 hover:bg-pink-50 transition-all leading-tight relative group"
-                        >
-                          <div className="text-pink-400 text-[8px] font-bold mb-1 uppercase opacity-60">{item.category}</div>
-                          {item.text}
-                          <button 
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              deletePersonalComment(item.text);
-                            }}
-                            className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 bg-white shadow-sm p-1 rounded-full text-red-400 hover:text-red-600"
-                          >
-                            <Trash2 size={8} />
-                          </button>
-                        </button>
+                        <div key={item.id} className="relative group">
+                          {editingPersonalId === item.id ? (
+                            <div className="p-2 border border-pink-300 rounded-xl bg-white space-y-2">
+                              <input 
+                                type="text"
+                                value={item.category}
+                                onChange={(e) => updatePersonalComment(item.id, item.text, e.target.value)}
+                                className="text-[8px] font-bold uppercase text-pink-400 w-full outline-none"
+                              />
+                              <textarea
+                                value={item.text}
+                                onChange={(e) => updatePersonalComment(item.id, e.target.value, item.category)}
+                                className="w-full text-[10px] outline-none resize-none h-16 leading-tight"
+                              />
+                              <button 
+                                onClick={() => setEditingPersonalId(null)}
+                                className="w-full py-1 bg-pink-500 text-white text-[9px] font-bold rounded-lg"
+                              >
+                                Xong
+                              </button>
+                            </div>
+                          ) : (
+                            <button
+                              onClick={() => {
+                                const newS = [...studentsData];
+                                const pMap = colMapping.periods[editingStudent.period];
+                                newS[editingStudent.idx] = {
+                                  ...newS[editingStudent.idx], 
+                                  [pMap.comment]: item.text
+                                };
+                                setStudentsData(newS);
+                                showToast("Đã chọn từ thư viện cá nhân");
+                              }}
+                              className="w-full h-full text-left p-2.5 rounded-xl border border-pink-100 text-[10px] hover:border-pink-300 hover:bg-pink-50 transition-all leading-tight relative"
+                            >
+                              <div className="text-pink-400 text-[8px] font-bold mb-1 uppercase opacity-60">{item.category}</div>
+                              {item.text}
+                              <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 flex gap-1">
+                                <button 
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setEditingPersonalId(item.id);
+                                  }}
+                                  className="bg-white shadow-sm p-1 rounded-full text-blue-400 hover:text-blue-600"
+                                  title="Sửa"
+                                >
+                                  <Edit3 size={8} />
+                                </button>
+                                <button 
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    deletePersonalComment(item.id);
+                                  }}
+                                  className="bg-white shadow-sm p-1 rounded-full text-red-400 hover:text-red-600"
+                                  title="Xóa"
+                                >
+                                  <Trash2 size={8} />
+                                </button>
+                              </div>
+                            </button>
+                          )}
+                        </div>
                       ))}
                     </div>
                   </div>
@@ -2558,42 +2792,55 @@ export default function App() {
                         </div>
                       ) : (
                         <div className="grid gap-4">
-                          {filteredPersonal.map((item, idx) => (
-                            <div key={idx} className="flex gap-4 group items-start bg-pink-50/20 p-4 rounded-3xl border border-pink-100/50">
+                          {filteredPersonal.map((item) => (
+                            <div 
+                              key={item.id} 
+                              className={cn(
+                                "flex gap-4 group items-start p-4 rounded-3xl border transition-all",
+                                aiConfig.foundationalComments?.includes(item.text) 
+                                  ? "bg-purple-50 border-purple-300 ring-2 ring-purple-100" 
+                                  : "bg-pink-50/20 border-pink-100/50"
+                              )}
+                            >
                               <div className="flex-grow space-y-2">
-                                <div className="flex items-center gap-2">
-                                  <input 
-                                    type="text"
-                                    value={item.category}
-                                    onChange={(e) => {
-                                      const newList = [...personalComments];
-                                      const foundIdx = personalComments.findIndex(c => c.text === item.text);
-                                      if (foundIdx !== -1) {
-                                        newList[foundIdx].category = e.target.value;
-                                        setPersonalComments(newList);
-                                        localStorage.setItem('report_helper_personal_comments_v2', JSON.stringify(newList));
+                                <div className="flex items-center justify-between">
+                                  <div className="flex items-center gap-2">
+                                    <input 
+                                      type="text"
+                                      value={item.category}
+                                      onChange={(e) => updatePersonalComment(item.id, item.text, e.target.value)}
+                                      className="text-[10px] font-black uppercase text-pink-400 bg-white border border-pink-50 px-2 py-0.5 rounded-full outline-none focus:border-pink-200"
+                                      placeholder="Nhóm..."
+                                    />
+                                  </div>
+                                  <button
+                                    onClick={() => {
+                                      const current = aiConfig.foundationalComments || [];
+                                      if (current.includes(item.text)) {
+                                        setAIConfig(prev => ({ ...prev, foundationalComments: current.filter(t => t !== item.text) }));
+                                      } else if (current.length < 3) {
+                                        setAIConfig(prev => ({ ...prev, foundationalComments: [...current, item.text] }));
                                       }
                                     }}
-                                    className="text-[10px] font-black uppercase text-pink-400 bg-white border border-pink-50 px-2 py-0.5 rounded-full outline-none focus:border-pink-200"
-                                    placeholder="Nhóm..."
-                                  />
+                                    className={cn(
+                                      "flex items-center gap-1.5 px-2 py-1 rounded-lg text-[9px] font-bold transition-all border",
+                                      aiConfig.foundationalComments?.includes(item.text)
+                                        ? "bg-purple-600 border-purple-600 text-white shadow-sm"
+                                        : "bg-white border-gray-200 text-gray-400 hover:text-purple-600 hover:border-purple-200"
+                                    )}
+                                  >
+                                    {aiConfig.foundationalComments?.includes(item.text) ? <CheckCircle size={10} /> : <Sparkles size={10} />}
+                                    Làm mẫu AI
+                                  </button>
                                 </div>
                                 <textarea
                                   value={item.text}
-                                  onChange={(e) => {
-                                    const newList = [...personalComments];
-                                    const foundIdx = personalComments.findIndex(c => c.text === item.text);
-                                    if (foundIdx !== -1) {
-                                      newList[foundIdx].text = e.target.value;
-                                      setPersonalComments(newList);
-                                      localStorage.setItem('report_helper_personal_comments_v2', JSON.stringify(newList));
-                                    }
-                                  }}
+                                  onChange={(e) => updatePersonalComment(item.id, e.target.value, item.category)}
                                   className="w-full bg-transparent text-sm outline-none resize-none h-20 transition-all leading-relaxed"
                                 />
                               </div>
                               <button 
-                                onClick={() => deletePersonalComment(item.text)}
+                                onClick={() => deletePersonalComment(item.id)}
                                 className="p-2 text-gray-300 hover:text-red-500 transition-colors"
                                 title="Xóa nhận xét"
                               >
@@ -2633,33 +2880,67 @@ export default function App() {
                             </h5>
                             <div className="grid gap-3">
                               {list.map((item, idx) => (
-                                <div key={idx} className="flex gap-2 group">
-                                  <textarea
-                                    value={item}
-                                    onChange={(e) => {
-                                      const newList = [...list];
-                                      newList[idx] = e.target.value;
-                                      if (subject === "__competencies__") {
-                                        setBankCompetencies(prev => ({...prev, [cat]: newList}));
-                                      } else {
-                                        setBankQualities(prev => ({...prev, [cat]: newList}));
-                                      }
-                                    }}
-                                    className="flex-grow p-3 bg-gray-50 border border-gray-100 rounded-xl text-sm focus:bg-white focus:ring-2 focus:ring-blue-100 outline-none resize-none h-20 transition-all"
-                                  />
-                                  <button 
-                                    onClick={() => {
-                                      const newList = list.filter((_, i) => i !== idx);
-                                      if (subject === "__competencies__") {
-                                        setBankCompetencies(prev => ({...prev, [cat]: newList}));
-                                      } else {
-                                        setBankQualities(prev => ({...prev, [cat]: newList}));
-                                      }
-                                    }}
-                                    className="opacity-0 group-hover:opacity-100 p-2 text-gray-400 hover:text-red-500 transition-all flex-shrink-0"
-                                  >
-                                    <Trash2 size={18} />
-                                  </button>
+                                <div key={idx} className="flex flex-col gap-1 group">
+                                  <div className="flex gap-2">
+                                    <textarea
+                                      value={item}
+                                      onChange={(e) => {
+                                        const newList = [...list];
+                                        newList[idx] = e.target.value;
+                                        if (subject === "__competencies__") {
+                                          setBankCompetencies(prev => ({...prev, [cat]: newList}));
+                                        } else {
+                                          setBankQualities(prev => ({...prev, [cat]: newList}));
+                                        }
+                                      }}
+                                      className={cn(
+                                        "flex-grow p-3 rounded-xl text-sm outline-none resize-none h-20 transition-all border",
+                                        aiConfig.foundationalComments?.includes(item)
+                                          ? "bg-purple-50 border-purple-300 ring-2 ring-purple-100 focus:bg-white"
+                                          : "bg-gray-50 border-gray-100 focus:bg-white focus:ring-2 focus:ring-blue-100"
+                                      )}
+                                    />
+                                    <div className="flex flex-col gap-2">
+                                      <button 
+                                        onClick={() => {
+                                          const newList = list.filter((_, i) => i !== idx);
+                                          if (subject === "__competencies__") {
+                                            setBankCompetencies(prev => ({...prev, [cat]: newList}));
+                                          } else {
+                                            setBankQualities(prev => ({...prev, [cat]: newList}));
+                                          }
+                                        }}
+                                        className="p-2 text-gray-300 hover:text-red-500 transition-all"
+                                        title="Xóa"
+                                      >
+                                        <Trash2 size={16} />
+                                      </button>
+                                      <button 
+                                        onClick={() => {
+                                          const current = aiConfig.foundationalComments || [];
+                                          if (current.includes(item)) {
+                                            setAIConfig(prev => ({ ...prev, foundationalComments: current.filter(t => t !== item) }));
+                                          } else if (current.length < 3) {
+                                            setAIConfig(prev => ({ ...prev, foundationalComments: [...current, item] }));
+                                          }
+                                        }}
+                                        className={cn(
+                                          "p-2 rounded-lg transition-all",
+                                          aiConfig.foundationalComments?.includes(item)
+                                            ? "text-purple-600 bg-purple-100"
+                                            : "text-gray-300 hover:text-purple-500 hover:bg-purple-50"
+                                        )}
+                                        title="Dùng làm mẫu AI"
+                                      >
+                                        <Sparkles size={16} />
+                                      </button>
+                                    </div>
+                                  </div>
+                                  {aiConfig.foundationalComments?.includes(item) && (
+                                    <div className="flex items-center gap-1 text-[8px] font-bold text-purple-500 uppercase px-1">
+                                      <Sparkles size={8} /> Đang dùng làm mẫu AI
+                                    </div>
+                                  )}
                                 </div>
                               ))}
                               <button 
@@ -2720,44 +3001,78 @@ export default function App() {
                               cat === 'excellent' ? "text-green-600" : cat === 'good' ? "text-blue-600" : cat === 'fair' ? "text-amber-600" : "text-red-600"
                             )}>
                               {cat === 'excellent' ? 'Hoàn thành tốt (9-10)' : 
-                               cat === 'good' ? 'Khá (7-8)' : 
-                               cat === 'fair' ? 'Trung bình (5-6)' : 'Cần cố gắng (<5)'}
+                               cat === 'good' ? 'Khá - Tốt (7-8)' : 
+                               cat === 'fair' ? 'Đạt (5-6)' : 'Cần cố gắng (<5)'}
                             </h5>
                             <div className="grid gap-3">
                               {list.map((item, idx) => (
-                                <div key={idx} className="flex gap-2 group">
-                                  <textarea
-                                    value={item}
-                                    onChange={(e) => {
-                                      const newSubjects = { ...bankSubjects };
-                                      const subData = { ...newSubjects[subject] };
-                                      const lvlData = { ...subData[gradeLevel] || subData["general"] };
-                                      const catData = [...(lvlData[cat] || [])];
-                                      catData[idx] = e.target.value;
-                                      
-                                      lvlData[cat] = catData;
-                                      subData[gradeLevel] = lvlData;
-                                      newSubjects[subject] = subData;
-                                      setBankSubjects(newSubjects);
-                                    }}
-                                    className="flex-grow p-3 bg-gray-50 border border-gray-100 rounded-xl text-sm focus:bg-white focus:ring-2 focus:ring-blue-100 outline-none resize-none h-20 transition-all"
-                                  />
-                                  <button 
-                                    onClick={() => {
-                                      const newSubjects = { ...bankSubjects };
-                                      const subData = { ...newSubjects[subject] };
-                                      const lvlData = { ...subData[gradeLevel] || subData["general"] };
-                                      const catData = (lvlData[cat] || []).filter((_, i) => i !== idx);
-                                      
-                                      lvlData[cat] = catData;
-                                      subData[gradeLevel] = lvlData;
-                                      newSubjects[subject] = subData;
-                                      setBankSubjects(newSubjects);
-                                    }}
-                                    className="opacity-0 group-hover:opacity-100 p-2 text-gray-400 hover:text-red-500 transition-all flex-shrink-0"
-                                  >
-                                    <Trash2 size={18} />
-                                  </button>
+                                <div key={idx} className="flex flex-col gap-1 group">
+                                  <div className="flex gap-2">
+                                    <textarea
+                                      value={item}
+                                      onChange={(e) => {
+                                        const newSubjects = { ...bankSubjects };
+                                        const subData = { ...newSubjects[subject] };
+                                        const lvlData = { ...subData[gradeLevel] || subData["general"] };
+                                        const catData = [...(lvlData[cat] || [])];
+                                        catData[idx] = e.target.value;
+                                        
+                                        lvlData[cat] = catData;
+                                        subData[gradeLevel] = lvlData;
+                                        newSubjects[subject] = subData;
+                                        setBankSubjects(newSubjects);
+                                      }}
+                                      className={cn(
+                                        "flex-grow p-3 rounded-xl text-sm outline-none resize-none h-20 transition-all border",
+                                        aiConfig.foundationalComments?.includes(item)
+                                          ? "bg-purple-50 border-purple-300 ring-2 ring-purple-100 focus:bg-white"
+                                          : "bg-gray-50 border-gray-100 focus:bg-white focus:ring-2 focus:ring-blue-100"
+                                      )}
+                                    />
+                                    <div className="flex flex-col gap-2">
+                                      <button 
+                                        onClick={() => {
+                                          const newSubjects = { ...bankSubjects };
+                                          const subData = { ...newSubjects[subject] };
+                                          const lvlData = { ...subData[gradeLevel] || subData["general"] };
+                                          const catData = (lvlData[cat] || []).filter((_, i) => i !== idx);
+                                          
+                                          lvlData[cat] = catData;
+                                          subData[gradeLevel] = lvlData;
+                                          newSubjects[subject] = subData;
+                                          setBankSubjects(newSubjects);
+                                        }}
+                                        className="p-2 text-gray-300 hover:text-red-500 transition-all"
+                                        title="Xóa"
+                                      >
+                                        <Trash2 size={16} />
+                                      </button>
+                                      <button 
+                                        onClick={() => {
+                                          const current = aiConfig.foundationalComments || [];
+                                          if (current.includes(item)) {
+                                            setAIConfig(prev => ({ ...prev, foundationalComments: current.filter(t => t !== item) }));
+                                          } else if (current.length < 3) {
+                                            setAIConfig(prev => ({ ...prev, foundationalComments: [...current, item] }));
+                                          }
+                                        }}
+                                        className={cn(
+                                          "p-2 rounded-lg transition-all",
+                                          aiConfig.foundationalComments?.includes(item)
+                                            ? "text-purple-600 bg-purple-100"
+                                            : "text-gray-300 hover:text-purple-500 hover:bg-purple-50"
+                                        )}
+                                        title="Dùng làm mẫu AI"
+                                      >
+                                        <Sparkles size={16} />
+                                      </button>
+                                    </div>
+                                  </div>
+                                  {aiConfig.foundationalComments?.includes(item) && (
+                                    <div className="flex items-center gap-1 text-[8px] font-bold text-purple-500 uppercase px-1">
+                                      <Sparkles size={8} /> Đang dùng làm mẫu AI
+                                    </div>
+                                  )}
                                 </div>
                               ))}
                               <button 
