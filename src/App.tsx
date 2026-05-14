@@ -156,6 +156,11 @@ function CustomSelect({ value, onChange, options, placeholder = "-- Chọn --", 
   );
 }
 
+// Utility for accent-insensitive search
+const removeAccents = (str: string) => {
+  return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D');
+};
+
 export default function App() {
   const [rawDataAOA, setRawDataAOA] = useState<any[][]>([]);
   const [headers, setHeaders] = useState<string[]>([]);
@@ -247,9 +252,10 @@ export default function App() {
     }
 
     if (!foundationSearch) return list;
+    const searchLower = removeAccents(foundationSearch.toLowerCase());
     return list.filter(c => 
-      c.text.toLowerCase().includes(foundationSearch.toLowerCase()) || 
-      c.category.toLowerCase().includes(foundationSearch.toLowerCase())
+      removeAccents(c.text.toLowerCase()).includes(searchLower) || 
+      removeAccents(c.category.toLowerCase()).includes(searchLower)
     );
   }, [personalComments, bankSubjects, subject, gradeLevel, foundationSearch]);
 
@@ -379,17 +385,18 @@ export default function App() {
     showToast("Đã xóa khỏi thư viện cá nhân");
   };
 
-  const personalCategories = ["Tất cả", ...new Set(personalComments.map(c => c.category))];
-  const filteredPersonal = personalComments.filter(c => {
-    const matchesCategory = personalCategoryFilter === "Tất cả" || c.category === personalCategoryFilter;
-    const matchesSearch = c.text.toLowerCase().includes(personalSearch.toLowerCase()) || 
-                         c.category.toLowerCase().includes(personalSearch.toLowerCase());
-    return matchesCategory && matchesSearch;
-  });
-
-  const removeAccents = (str: string) => {
-    return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D');
-  };
+  const personalCategories = useMemo(() => ["Tất cả", ...new Set(personalComments.map(c => c.category))], [personalComments]);
+  
+  const filteredPersonal = useMemo(() => {
+    const searchLower = removeAccents(personalSearch.toLowerCase());
+    return personalComments.filter(c => {
+      const matchesCategory = personalCategoryFilter === "Tất cả" || c.category === personalCategoryFilter;
+      const textNoAccent = removeAccents(c.text.toLowerCase());
+      const catNoAccent = removeAccents(c.category.toLowerCase());
+      const matchesSearch = textNoAccent.includes(searchLower) || catNoAccent.includes(searchLower);
+      return matchesCategory && matchesSearch;
+    });
+  }, [personalComments, personalSearch, personalCategoryFilter]);
 
   const handleFiles = (file: File) => {
     setOriginalFileName(file.name);
@@ -1335,8 +1342,16 @@ export default function App() {
                             placeholder="Tìm trong thư viện..."
                             value={foundationSearch}
                             onChange={e => setFoundationSearch(e.target.value)}
-                            className="w-full text-[9px] pl-6 pr-2 py-1.5 rounded-lg border border-indigo-100 bg-white/50 focus:bg-white outline-none focus:ring-1 focus:ring-indigo-200"
+                            className="w-full text-[9px] pl-6 pr-6 py-1.5 rounded-lg border border-indigo-100 bg-white/50 focus:bg-white outline-none focus:ring-1 focus:ring-indigo-200 transition-all"
                           />
+                          {foundationSearch && (
+                            <button 
+                              onClick={() => setFoundationSearch("")}
+                              className="absolute right-2 top-1/2 -translate-y-1/2 text-indigo-300 hover:text-indigo-600"
+                            >
+                              <X size={10} />
+                            </button>
+                          )}
                         </div>
 
                         {availableFoundationalComments.length === 0 ? (
@@ -2040,11 +2055,19 @@ export default function App() {
                           <Search size={10} className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-400" />
                           <input 
                             type="text" 
-                            placeholder="Tìm kiếm..."
+                            placeholder="Tìm nhanh..."
                             value={personalSearch}
                             onChange={e => setPersonalSearch(e.target.value)}
-                            className="text-[10px] pl-6 pr-2 py-1 rounded-full border border-gray-100 focus:border-pink-200 outline-none w-32"
+                            className="text-[10px] pl-6 pr-6 py-1 rounded-full border border-gray-100 focus:border-pink-200 outline-none w-36 transition-all"
                           />
+                          {personalSearch && (
+                            <button 
+                              onClick={() => setPersonalSearch("")}
+                              className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-pink-500"
+                            >
+                              <X size={10} />
+                            </button>
+                          )}
                         </div>
                         <select 
                           value={personalCategoryFilter}
@@ -2457,16 +2480,24 @@ export default function App() {
                             <p className="text-sm text-gray-500">Phân loại và tìm kiếm các nhận xét tâm đắc của bạn</p>
                           </div>
                         </div>
-                        <div className="flex gap-2">
+                         <div className="flex gap-2">
                           <div className="relative">
                             <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                             <input 
                               type="text" 
-                              placeholder="Tìm nội dung..."
+                              placeholder="Tìm nội dung hoặc nhóm..."
                               value={personalSearch}
                               onChange={e => setPersonalSearch(e.target.value)}
-                              className="pl-10 pr-4 py-2 rounded-xl border border-gray-100 focus:ring-2 focus:ring-pink-100 outline-none text-sm w-48"
+                              className="pl-10 pr-10 py-2 rounded-xl border border-gray-100 focus:ring-2 focus:ring-pink-100 outline-none text-sm w-64 transition-all"
                             />
+                            {personalSearch && (
+                              <button 
+                                onClick={() => setPersonalSearch("")}
+                                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-pink-500"
+                              >
+                                <X size={14} />
+                              </button>
+                            )}
                           </div>
                           <select 
                             value={personalCategoryFilter}
