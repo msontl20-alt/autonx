@@ -15,6 +15,7 @@ import {
   Users,
   Calendar,
   PlusCircle,
+  Plus,
   FileCheck,
   RefreshCw,
   RotateCcw,
@@ -197,6 +198,10 @@ export default function App() {
   const [personalComments, setPersonalComments] = useState<{text: string, category: string}[]>([]);
   const [personalSearch, setPersonalSearch] = useState("");
   const [personalCategoryFilter, setPersonalCategoryFilter] = useState("Tất cả");
+  const [newPersonalText, setNewPersonalText] = useState("");
+  const [newPersonalCategory, setNewPersonalCategory] = useState("Chung");
+  const [newSubjectName, setNewSubjectName] = useState("");
+  const [isAddingSubject, setIsAddingSubject] = useState(false);
 
   // Bank State (Editable)
   const [bankCompetencies, setBankCompetencies] = useState({
@@ -1610,7 +1615,7 @@ export default function App() {
                                         onClick={() => {
                                           const pMap = colMapping.periods[period];
                                           const commentValue = s[pMap.comment];
-                                          if (commentValue) savePersonalComment(commentValue, "Chung");
+                                          if (commentValue) savePersonalComment(commentValue, `${subject} - ${period}`);
                                         }}
                                         className="text-pink-500 hover:text-pink-700 p-0.5"
                                         title="Lưu vào thư viện cá nhân"
@@ -1985,7 +1990,7 @@ export default function App() {
                     onClick={() => {
                       const pMap = colMapping.periods[editingStudent.period];
                       const comment = studentsData[editingStudent.idx][pMap.comment];
-                      if (comment) savePersonalComment(comment, "Chung");
+                      if (comment) savePersonalComment(comment, `${subject} - ${editingStudent.period}`);
                     }}
                     className="flex items-center gap-1.5 px-4 py-2 bg-pink-50 text-pink-600 border border-pink-100 rounded-xl font-bold text-xs hover:bg-pink-100 transition-all"
                   >
@@ -2078,18 +2083,65 @@ export default function App() {
                 <div className="w-64 bg-gray-50 border-r border-gray-100 overflow-y-auto p-4 flex flex-col gap-1">
                   <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-3 mb-2">Môn học</span>
                   {Object.keys(bankSubjects).map(sub => (
-                    <button
-                      key={sub}
-                      onClick={() => setSubject(sub)}
-                      className={cn(
-                        "w-full text-left px-3 py-2 rounded-lg text-sm font-medium transition-all flex items-center justify-between group",
-                        subject === sub ? "bg-blue-100 text-blue-700 shadow-sm" : "text-gray-600 hover:bg-gray-200/50"
-                      )}
-                    >
-                      <span>{sub}</span>
-                      {subject === sub && <div className="w-1.5 h-1.5 rounded-full bg-blue-600" />}
-                    </button>
+                    <div key={sub} className="flex items-center gap-1 group">
+                      <button
+                        onClick={() => setSubject(sub)}
+                        className={cn(
+                          "flex-grow text-left px-3 py-2 rounded-lg text-sm font-medium transition-all flex items-center justify-between",
+                          subject === sub ? "bg-blue-100 text-blue-700 shadow-sm" : "text-gray-600 hover:bg-gray-200/50"
+                        )}
+                      >
+                        <span className="truncate">{sub}</span>
+                        {subject === sub && <div className="w-1.5 h-1.5 rounded-full bg-blue-600 flex-shrink-0" />}
+                      </button>
+                      <button 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (confirm(`Xóa toàn bộ thư viện cho môn ${sub}?`)) {
+                            const newBanks = { ...bankSubjects };
+                            delete newBanks[sub];
+                            setBankSubjects(newBanks);
+                            if (subject === sub) setSubject(Object.keys(newBanks)[0] || "__personal__");
+                          }
+                        }}
+                        className="opacity-0 group-hover:opacity-100 p-1.5 text-gray-300 hover:text-red-500 transition-all"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
                   ))}
+                  {isAddingSubject ? (
+                    <div className="px-3 py-1">
+                      <input 
+                        autoFocus
+                        value={newSubjectName}
+                        onChange={e => setNewSubjectName(e.target.value)}
+                        onBlur={() => { if(!newSubjectName.trim()) setIsAddingSubject(false); }}
+                        onKeyDown={e => {
+                          if (e.key === 'Enter') {
+                            const clean = newSubjectName.trim();
+                            if (clean && !bankSubjects[clean]) {
+                              setBankSubjects({...bankSubjects, [clean]: { general: { excellent: [], good: [], fair: [], poor: [] } }});
+                              setSubject(clean);
+                              setNewSubjectName("");
+                              setIsAddingSubject(false);
+                            }
+                          }
+                          if (e.key === 'Escape') setIsAddingSubject(false);
+                        }}
+                        className="w-full text-xs p-1.5 border border-blue-200 rounded outline-none focus:ring-1 focus:ring-blue-300"
+                        placeholder="Tên môn mới..."
+                      />
+                    </div>
+                  ) : (
+                    <button 
+                      onClick={() => setIsAddingSubject(true)}
+                      className="mx-3 my-1 py-1 px-3 border border-dashed border-gray-300 rounded-lg text-[10px] font-bold text-gray-400 hover:border-blue-400 hover:text-blue-500 transition-all flex items-center justify-center gap-1"
+                    >
+                      <Plus size={10} />
+                      Thêm môn học mới
+                    </button>
+                  )}
                   <div className="mt-6 mb-2 pt-4 border-t border-gray-200">
                     <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-3">Phần bổ trợ</span>
                   </div>
@@ -2157,6 +2209,47 @@ export default function App() {
                           >
                             {personalCategories.map(c => <option key={c} value={c}>{c}</option>)}
                           </select>
+                        </div>
+                      </div>
+
+                      {/* New Personal Comment Form */}
+                      <div className="bg-pink-50/30 p-6 rounded-3xl border border-pink-100/50 flex flex-col gap-4">
+                        <div className="flex items-center gap-2">
+                          <PlusCircle size={16} className="text-pink-400" />
+                          <span className="text-xs font-bold text-pink-600 uppercase tracking-wider">Tạo nhận xét mẫu mới</span>
+                        </div>
+                        <div className="flex gap-4">
+                          <textarea 
+                            value={newPersonalText}
+                            onChange={e => setNewPersonalText(e.target.value)}
+                            placeholder="Nhập nội dung mẫu nhận xét của bạn vào đây..."
+                            className="flex-grow p-4 bg-white border border-pink-100 rounded-2xl text-sm focus:ring-2 focus:ring-pink-200 outline-none h-24 resize-none transition-all"
+                          />
+                          <div className="flex flex-col gap-3 w-56">
+                            <div className="space-y-1">
+                              <label className="text-[10px] font-black text-pink-400 uppercase ml-1 tracking-tight">Phân nhóm</label>
+                              <input 
+                                type="text"
+                                value={newPersonalCategory}
+                                onChange={e => setNewPersonalCategory(e.target.value)}
+                                placeholder="VD: Toán, Khen ngợi..."
+                                className="w-full p-2.5 bg-white border border-pink-100 rounded-xl text-xs outline-none focus:border-pink-300"
+                              />
+                            </div>
+                            <button 
+                              onClick={() => {
+                                if (!newPersonalText.trim()) return;
+                                savePersonalComment(newPersonalText, newPersonalCategory || "Chung");
+                                setNewPersonalText("");
+                                setNewPersonalCategory("Chung");
+                              }}
+                              disabled={!newPersonalText.trim()}
+                              className="w-full py-3 bg-pink-500 text-white rounded-xl font-bold text-xs shadow-lg shadow-pink-200 hover:bg-pink-600 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                            >
+                              <Save size={14} />
+                              Lưu vào thư viện
+                            </button>
+                          </div>
                         </div>
                       </div>
 
