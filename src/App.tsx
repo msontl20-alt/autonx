@@ -16,10 +16,12 @@ import {
   Calendar,
   PlusCircle,
   Plus,
+  HelpCircle,
   FileCheck,
   RefreshCw,
   RotateCcw,
   Save,
+  Key,
   ChevronDown,
   User,
   Hash,
@@ -202,6 +204,8 @@ export default function App() {
   const [newPersonalCategory, setNewPersonalCategory] = useState("Chung");
   const [newSubjectName, setNewSubjectName] = useState("");
   const [isAddingSubject, setIsAddingSubject] = useState(false);
+  const [showingHelp, setShowingHelp] = useState(false);
+  const [foundationSearch, setFoundationSearch] = useState("");
 
   // Bank State (Editable)
   const [bankCompetencies, setBankCompetencies] = useState({
@@ -215,6 +219,39 @@ export default function App() {
     poor: qualitiesPoor
   });
   const [bankSubjects, setBankSubjects] = useState(ALL_SUBJECTS_BANK);
+
+  const availableFoundationalComments = useMemo(() => {
+    const list: { text: string; category: string; type: 'personal' | 'system' | 'sample' }[] = [];
+    
+    personalComments.forEach(c => list.push({ ...c, type: 'personal' }));
+    FOUNDATIONAL_SAMPLES.forEach(s => list.push({ text: s.text, category: `Mẫu: ${s.category}`, type: 'sample' }));
+    
+    if (bankSubjects[subject]) {
+      const subData = bankSubjects[subject];
+      const gradesToInclude = [gradeLevel];
+      if (gradeLevel !== 'general') gradesToInclude.push('general');
+      
+      gradesToInclude.forEach(g => {
+        if (subData[g]) {
+          Object.entries(subData[g]).forEach(([lvl, texts]) => {
+            if (Array.isArray(texts)) {
+              texts.forEach(t => list.push({ 
+                text: t, 
+                category: `${subject}${g === 'general' ? ' (Chung)' : ''} - ${lvl}`, 
+                type: 'system' 
+              }));
+            }
+          });
+        }
+      });
+    }
+
+    if (!foundationSearch) return list;
+    return list.filter(c => 
+      c.text.toLowerCase().includes(foundationSearch.toLowerCase()) || 
+      c.category.toLowerCase().includes(foundationSearch.toLowerCase())
+    );
+  }, [personalComments, bankSubjects, subject, gradeLevel, foundationSearch]);
 
   // UI State
   const [toast, setToast] = useState<{msg: string, type: 'success' | 'error'} | null>(null);
@@ -1036,13 +1073,22 @@ export default function App() {
             <CheckCircle size={14} className="text-green-400" />
             <span>Chuẩn dữ liệu Học bạ</span>
           </div>
-          <button 
-            onClick={() => setManagingLibrary(true)}
-            className="flex items-center gap-2 bg-blue-500 hover:bg-blue-400 text-white px-4 py-2 rounded-xl text-sm font-semibold transition-all shadow-md active:scale-95"
-          >
-            <BookOpen size={18} />
-            <span className="hidden sm:inline">Thư viện nhận xét</span>
-          </button>
+          <div className="flex items-center gap-2">
+            <button 
+              onClick={() => setShowingHelp(true)}
+              className="flex items-center gap-2 bg-blue-700/50 hover:bg-blue-700 text-white px-4 py-2 rounded-xl text-sm font-semibold transition-all border border-blue-400/30"
+            >
+              <HelpCircle size={18} />
+              <span className="hidden sm:inline">Hướng dẫn</span>
+            </button>
+            <button 
+              onClick={() => setManagingLibrary(true)}
+              className="flex items-center gap-2 bg-blue-500 hover:bg-blue-400 text-white px-4 py-2 rounded-xl text-sm font-semibold transition-all shadow-md active:scale-95"
+            >
+              <BookOpen size={18} />
+              <span className="hidden sm:inline">Thư viện nhận xét</span>
+            </button>
+          </div>
         </div>
       </header>
 
@@ -1277,18 +1323,29 @@ export default function App() {
                             <Heart size={10} fill="currentColor" />
                             Nhận xét nền tảng
                           </span>
-                          <span className="text-[8px] normal-case font-medium text-indigo-300">Chọn tối đa 3 câu mẫu</span>
+                          <span className="text-[8px] normal-case font-medium text-indigo-300">
+                            {aiConfig.foundationalComments?.length || 0}/3 câu được chọn
+                          </span>
                         </label>
-                        {personalComments.length === 0 && FOUNDATIONAL_SAMPLES.length === 0 ? (
-                          <p className="text-[9px] text-gray-400 italic py-1 px-2 bg-white/50 rounded border border-dashed border-indigo-100">
-                            Chưa có nhận xét mẫu nào.
+                        
+                        <div className="relative mb-2">
+                          <Search size={10} className="absolute left-2 top-1/2 -translate-y-1/2 text-indigo-300" />
+                          <input 
+                            type="text"
+                            placeholder="Tìm trong thư viện..."
+                            value={foundationSearch}
+                            onChange={e => setFoundationSearch(e.target.value)}
+                            className="w-full text-[9px] pl-6 pr-2 py-1.5 rounded-lg border border-indigo-100 bg-white/50 focus:bg-white outline-none focus:ring-1 focus:ring-indigo-200"
+                          />
+                        </div>
+
+                        {availableFoundationalComments.length === 0 ? (
+                          <p className="text-[9px] text-gray-400 italic py-2 text-center bg-white/50 rounded border border-dashed border-indigo-100">
+                            {foundationSearch ? "Không tìm thấy kết quả" : "Chưa có nhận xét mẫu nào."}
                           </p>
                         ) : (
-                          <div className="space-y-1 max-h-40 overflow-y-auto pr-1">
-                            {[
-                              ...personalComments.map(c => ({ ...c, isSystem: false })),
-                              ...FOUNDATIONAL_SAMPLES.map(s => ({ ...s, category: `Mẫu: ${s.category}`, isSystem: true }))
-                            ].map((c, i) => (
+                          <div className="space-y-1 max-h-44 overflow-y-auto pr-1">
+                            {availableFoundationalComments.map((c, i) => (
                               <label key={i} className={cn(
                                 "flex items-start gap-2 p-1.5 rounded text-left transition-all border cursor-pointer",
                                 aiConfig.foundationalComments?.includes(c.text)
@@ -1303,7 +1360,7 @@ export default function App() {
                                     const current = aiConfig.foundationalComments || [];
                                     if (e.target.checked) {
                                       if (current.length >= 3) {
-                                        showToast("Tối đa 3 mẫu để đảm bảo tốc độ và độ chính xác", "error");
+                                        showToast("Tối đa 3 mẫu để đảm bảo chất lượng", "error");
                                         return;
                                       }
                                       setAIConfig({ ...aiConfig, foundationalComments: [...current, c.text] });
@@ -1312,21 +1369,31 @@ export default function App() {
                                     }
                                   }}
                                 />
-                                <div className="flex flex-col">
+                                <div className="flex flex-col min-w-0">
                                   <div className="flex items-center gap-1 mb-0.5">
                                     <span className={cn(
-                                      "text-[7px] font-black uppercase",
-                                      c.isSystem ? "text-amber-500" : "text-indigo-400"
+                                      "text-[7px] font-black uppercase truncate max-w-[100px]",
+                                      c.type === 'sample' ? "text-amber-500" : 
+                                      c.type === 'personal' ? "text-indigo-400" : "text-blue-400"
                                     )}>
                                       {c.category}
                                     </span>
-                                    {c.isSystem && <StarIcon size={6} className="text-amber-400 fill-amber-400" />}
+                                    {c.type === 'sample' && <StarIcon size={6} className="text-amber-400 fill-amber-400" />}
+                                    {c.type === 'personal' && <Heart size={6} className="text-indigo-400 fill-indigo-400 shadow-sm" />}
                                   </div>
                                   <span className="text-[9px] leading-tight text-gray-700 line-clamp-3">{c.text}</span>
                                 </div>
                               </label>
                             ))}
                           </div>
+                        )}
+                        {aiConfig.foundationalComments && aiConfig.foundationalComments.length > 0 && (
+                          <button 
+                            onClick={() => setAIConfig({ ...aiConfig, foundationalComments: [] })}
+                            className="mt-2 w-full py-1 text-[8px] font-bold text-indigo-400 hover:text-indigo-600 transition-colors"
+                          >
+                            Xóa tất cả lựa chọn
+                          </button>
                         )}
                       </div>
                     </motion.div>
@@ -1555,8 +1622,17 @@ export default function App() {
                         <tr key={idx} className="hover:bg-blue-50/30 transition-colors group">
                           <td className="px-6 py-4 text-gray-400 font-medium text-center">{idx + 1}</td>
                           <td className="px-6 py-4 font-semibold text-gray-700 group/name">
-                            <div className="flex items-center justify-between gap-2">
-                              <span className="break-words">{name}</span>
+                            <div className="flex items-center justify-between gap-2 group/name-edit">
+                              <input 
+                                type="text"
+                                value={name || ""}
+                                onChange={(e) => {
+                                  const newS = [...studentsData];
+                                  newS[idx] = {...newS[idx], [colMapping.name]: e.target.value};
+                                  setStudentsData(newS);
+                                }}
+                                className="w-full bg-transparent border-b border-transparent focus:border-blue-400 focus:bg-white px-1 py-0.5 outline-none font-semibold text-gray-700 transition-all"
+                              />
                               <button 
                                 onClick={() => {
                                   const newS = [...studentsData];
@@ -1587,8 +1663,37 @@ export default function App() {
                                   <div className="flex items-center justify-between gap-2">
                                     <div className="flex items-center gap-2">
                                       <span className="text-[10px] font-black text-gray-400">{period}:</span>
-                                      {s[pMap.score] && <span className="text-[10px] font-bold text-blue-600">Đ: {s[pMap.score]}</span>}
-                                      {level && <span className={cn("px-1.5 py-0.5 rounded text-[9px] font-bold border", levelColor)}>{level}</span>}
+                                      {pMap.score && (
+                                        <div className="flex items-center gap-1">
+                                          <span className="text-[10px] font-bold text-blue-600">Đ:</span>
+                                          <input 
+                                            type="text"
+                                            value={s[pMap.score] || ""}
+                                            onChange={(e) => {
+                                              const newS = [...studentsData];
+                                              newS[idx] = {...newS[idx], [pMap.score]: e.target.value};
+                                              setStudentsData(newS);
+                                            }}
+                                            className="w-8 text-[10px] font-bold text-blue-700 bg-blue-50/50 border border-transparent hover:border-blue-200 focus:border-blue-400 outline-none rounded text-center py-0"
+                                          />
+                                        </div>
+                                      )}
+                                      {pMap.level && (
+                                        <select
+                                          value={level || ""}
+                                          onChange={(e) => {
+                                            const newS = [...studentsData];
+                                            newS[idx] = {...newS[idx], [pMap.level]: e.target.value};
+                                            setStudentsData(newS);
+                                          }}
+                                          className={cn("px-1 py-0.5 rounded text-[9px] font-bold border outline-none cursor-pointer", levelColor)}
+                                        >
+                                          <option value="">--</option>
+                                          <option value="T">T</option>
+                                          <option value="H">H</option>
+                                          <option value="C">C</option>
+                                        </select>
+                                      )}
                                     </div>
                                     <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all">
                                       <button 
@@ -1811,6 +1916,24 @@ export default function App() {
               </div>
 
               <div className="flex-grow overflow-y-auto p-6 space-y-6">
+                <div className="bg-blue-50/50 p-4 rounded-2xl border border-blue-100 flex flex-col gap-3">
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-[10px] font-black text-blue-500 uppercase tracking-widest">Nội dung nhận xét hiện tại</h4>
+                    <span className="text-[10px] text-gray-400 italic">Bạn có thể gõ trực tiếp vào đây để chỉnh sửa</span>
+                  </div>
+                  <textarea 
+                    value={studentsData[editingStudent.idx][colMapping.periods[editingStudent.period].comment] || ""}
+                    onChange={(e) => {
+                      const newS = [...studentsData];
+                      const pMap = colMapping.periods[editingStudent.period];
+                      newS[editingStudent.idx] = { ...newS[editingStudent.idx], [pMap.comment]: e.target.value };
+                      setStudentsData(newS);
+                    }}
+                    placeholder="Nhập hoặc chọn nhận xét từ thư viện bên dưới..."
+                    className="w-full h-32 p-4 bg-white border border-blue-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-100 outline-none transition-all resize-none shadow-inner"
+                  />
+                </div>
+
                 <div>
                   <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3">Nhận xét môn học ({subject})</h4>
                   <div className="grid grid-cols-2 gap-2">
@@ -2009,6 +2132,149 @@ export default function App() {
                 >
                   Xóa trắng
                 </button>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {showingHelp && (
+          <>
+            <motion.div 
+              initial={{opacity: 0}}
+              animate={{opacity: 1}}
+              exit={{opacity: 0}}
+              onClick={() => setShowingHelp(false)}
+              className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[150]"
+            />
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="fixed inset-4 md:inset-auto md:top-1/2 md:left-1/2 md:-translate-x-1/2 md:-translate-y-1/2 md:w-[700px] bg-white rounded-3xl shadow-2xl z-[160] flex flex-col max-h-[90vh] overflow-hidden border border-gray-100"
+            >
+              <div className="p-6 border-b border-gray-100 flex items-center justify-between bg-blue-600 text-white">
+                <div className="flex items-center gap-3">
+                  <div className="bg-white/20 p-2 rounded-lg">
+                    <HelpCircle size={24} />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-lg">Hướng dẫn sử dụng</h3>
+                    <p className="text-xs text-blue-100">Làm chủ công cụ tạo nhận xét tự động trong 1 phút</p>
+                  </div>
+                </div>
+                <button 
+                  onClick={() => setShowingHelp(false)}
+                  className="p-2 hover:bg-white/10 rounded-full transition-colors"
+                >
+                  <X size={24} />
+                </button>
+              </div>
+
+              <div className="flex-grow overflow-y-auto p-8 space-y-8">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-4">
+                    <div className="flex gap-4">
+                      <div className="bg-blue-100 text-blue-600 w-8 h-8 rounded-xl flex items-center justify-center font-bold flex-shrink-0">1</div>
+                      <div>
+                        <h4 className="font-bold text-gray-800 text-sm">Tải file Excel báo cáo</h4>
+                        <p className="text-xs text-gray-500 mt-1 leading-relaxed">
+                          Xuất file danh sách điểm từ VnEdu hoặc SMAS (thường là file báo cáo định kỳ). Kéo thả trực tiếp vào mục <b>"Tải bảng điểm"</b>.
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex gap-4">
+                      <div className="bg-blue-100 text-blue-600 w-8 h-8 rounded-xl flex items-center justify-center font-bold flex-shrink-0">2</div>
+                      <div>
+                        <h4 className="font-bold text-gray-800 text-sm">Ánh xạ cột dữ liệu</h4>
+                        <p className="text-xs text-gray-500 mt-1 leading-relaxed">
+                          Hệ thống sẽ tự nhận diện. Nếu sai, bạn hãy chọn lại các cột <b>Họ tên</b>, <b>Điểm</b> và <b>Nhận xét</b> tương ứng trong mục cấu hình.
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex gap-4">
+                      <div className="bg-blue-100 text-blue-600 w-8 h-8 rounded-xl flex items-center justify-center font-bold flex-shrink-0">3</div>
+                      <div>
+                        <h4 className="font-bold text-gray-800 text-sm">Tùy chỉnh nội dung</h4>
+                        <p className="text-xs text-gray-500 mt-1 leading-relaxed">
+                          Chọn <b>Môn học</b> và <b>Khối lớp</b>. Sử dụng <b>AI Gemini</b> để có nhận xét tự nhiên hơn hoặc dùng thư viện có sẵn.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                    <div className="flex gap-4">
+                      <div className="bg-blue-100 text-blue-600 w-8 h-8 rounded-xl flex items-center justify-center font-bold flex-shrink-0">4</div>
+                      <div>
+                        <h4 className="font-bold text-gray-800 text-sm">Tạo & Chỉnh sửa nhanh</h4>
+                        <p className="text-xs text-gray-500 mt-1 leading-relaxed">
+                          Nhấn <b>"Tạo nhận xét tự động"</b>. Bạn có thể sửa trực tiếp nội dung trên bảng hoặc mở thư viện chi tiết để chọn câu yêu thích.
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex gap-4">
+                      <div className="bg-blue-100 text-blue-600 w-8 h-8 rounded-xl flex items-center justify-center font-bold flex-shrink-0">5</div>
+                      <div>
+                        <h4 className="font-bold text-gray-800 text-sm">Thư viện cá nhân</h4>
+                        <p className="text-xs text-gray-500 mt-1 leading-relaxed">
+                          Lưu lại các câu tâm đắc vào thư viện riêng bằng biểu tượng <b>Trái tim</b> để tái sử dụng cho các lớp khác.
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex gap-4">
+                      <div className="bg-blue-100 text-blue-600 w-8 h-8 rounded-xl flex items-center justify-center font-bold flex-shrink-0">6</div>
+                      <div>
+                        <h4 className="font-bold text-gray-800 text-sm">Xuất kết quả</h4>
+                        <p className="text-xs text-gray-500 mt-1 leading-relaxed">
+                          Nhấn <b>"Lưu file"</b> để ghi đè vào file gốc hoặc <b>"Xuất riêng"</b> để lấy danh sách nhận xét sạch sẽ gửi cho nhà trường.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-amber-50 border border-amber-100 p-4 rounded-2xl flex gap-3">
+                  <Star className="text-amber-500 shrink-0" size={18} fill="currentColor" />
+                  <div>
+                    <h5 className="text-xs font-bold text-amber-800">Mẹo nhỏ:</h5>
+                    <p className="text-[11px] text-amber-700 leading-relaxed mt-1">
+                      Hãy sử dụng tính năng <b>"Lưu ánh xạ"</b> sau khi cấu hình xong các cột. Lần sau tải file cùng định dạng, bạn chỉ cần nhấn <b>"Tải mẫu"</b> là xong ngay!
+                    </p>
+                  </div>
+                </div>
+
+                <div className="bg-indigo-50 border border-indigo-100 p-4 rounded-2xl flex gap-3">
+                  <Key className="text-indigo-500 shrink-0" size={18} />
+                  <div>
+                    <h5 className="text-xs font-bold text-indigo-800">Cách thiết lập AI (Gemini API Key):</h5>
+                    <p className="text-[11px] text-indigo-700 leading-relaxed mt-1">
+                      Để sử dụng tính năng gợi ý thông minh, bạn cần thêm khóa API:
+                    </p>
+                    <ol className="text-[10px] text-indigo-600 mt-2 space-y-1 list-decimal ml-4">
+                      <li>Nhấn vào biểu tượng <b>Settings</b> (Bánh răng) ở menu bên trái.</li>
+                      <li>Chọn mục <b>Secrets</b>.</li>
+                      <li>Nhấn <b>Add Secret</b>.</li>
+                      <li>Phần <b>Key</b> điền: <code className="bg-indigo-100 px-1 rounded font-bold">GEMINI_API_KEY</code></li>
+                      <li>Phần <b>Value</b> dán mã API Key của bạn vào.</li>
+                      <li>Nhấn <b>Save</b> và <b>Deploy</b> để áp dụng.</li>
+                    </ol>
+                  </div>
+                </div>
+
+                <div className="pt-4 border-t border-gray-100 flex justify-center">
+                  <button 
+                    onClick={() => setShowingHelp(false)}
+                    className="px-8 py-3 bg-blue-600 text-white rounded-2xl font-bold shadow-lg shadow-blue-100 hover:bg-blue-700 transition-all active:scale-95"
+                  >
+                    Tôi đã hiểu, bắt đầu thôi!
+                  </button>
+                </div>
               </div>
             </motion.div>
           </>
@@ -2493,6 +2759,26 @@ export default function App() {
           </>
         )}
       </AnimatePresence>
+
+      <footer className="bg-white border-t border-gray-100 py-6 mt-12">
+        <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-2">
+            <div className="bg-blue-600 text-white p-1.5 rounded-lg">
+              <GraduationCap size={16} />
+            </div>
+            <span className="text-sm font-bold text-gray-700">AutoComment VnEdu</span>
+          </div>
+          <div className="flex flex-col md:items-end items-center">
+            <div className="flex items-center gap-1.5 text-xs text-gray-500 font-medium">
+              <span>Tác giả:</span>
+              <span className="text-gray-800 font-bold">Lục Minh Sơn</span>
+            </div>
+            <a href="mailto:msontl20@gmail.com" className="text-[10px] text-blue-500 hover:underline font-medium">
+              msontl20@gmail.com
+            </a>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }

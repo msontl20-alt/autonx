@@ -134,7 +134,7 @@ Quy tắc nội dung (Thông tư 27):
    - CK1/CK2: Tổng kết năng lực, phẩm chất và định hướng lâu dài.
 2. Mức đánh giá & Điểm số:
    - Tốt (T/HTT) & Điểm 9,10: Khen ngợi sự hào hứng, sáng tạo, nắm vững kiến thức nâng cao.
-   - Tốt/Hoàn thành (T/H) & Điểm 7,8: Khen ngợi sự chắc chắn, cẩn thận, hoàn thành tốt các yêu cầu. 
+   - Tốt/Hoàn thành (T/H) & Điểm 7,8: Khen ngợi sự chắc chắn, cẩn thận, nắm vững kiến thức và kỹ năng môn học. 
    - Hoàn thành (H/HT) & Điểm 5,6: Ghi nhận sự cố gắng, nhắc nhở rèn luyện thêm một vài kỹ năng cụ thể.
    - Chưa hoàn thành (C/CCG) & Điểm <5: Nêu giải pháp khắc phục cụ thể, nhẹ nhàng, truyền động lực.
 

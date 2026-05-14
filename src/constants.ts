@@ -59,150 +59,262 @@ export const FOUNDATIONAL_SAMPLES = [
 
 export const ALL_SUBJECTS_BANK: Record<string, Record<string, Record<string, string[]>>> = {
   "Toán": {
-    "1": {
-      excellent: ["Nhận dạng, đọc, viết các số đến 100 rất tốt. Cộng trừ phạm vi 100 thành thạo.", "Thông minh, nhanh nhẹn. Biết viết sơ đồ tách gộp theo mô hình chính xác.", "Làm toán nhanh, chính xác. Nhận diện hình vuông, tròn, tam giác rất tốt."],
-      good: ["Biết cộng, trừ trong phạm vi 100. Viết số rõ ràng, sạch đẹp.", "Nhận diện mặt số tốt, điền dấu lớn bé chính xác, hoàn thành bài tốt."],
-      fair: ["Hoàn thành bài toán. Cần rèn kĩ năng tính toán cẩn thận hơn, số viết còn ngược.", "Biết làm toán cộng trừ nhưng đôi khi còn chậm, cần rèn luyện thêm tốc độ."],
-      poor: ["Chưa nắm vững mặt số, tính toán còn nhầm lẫn nhiều. Cần rèn luyện thêm.", "Cần đặt tính cẩn thận, nhận diện hình hình học còn lúng túng."]
-    },
-    "2": {
-      excellent: ["Nắm vững phép cộng trừ có nhớ. Thuộc bảng nhân, chia 2 và 5 thành thạo.", "Tính toán nhanh nhẹn. Giải quyết tốt các bài toán thực tế có lời văn.", "Thực hiện phép tính nhanh xác, xem đồng hồ đúng giờ, đáng khen."],
-      good: ["Biết thực hiện cộng trừ có nhớ. Làm bài cẩn thận, rõ ràng.", "Nắm vững kiến thức toán học cơ bản, biết ước lượng độ dài các vật."],
-      fair: ["Biết làm phép tính nhưng giải toán có lời văn còn lúng túng, cần rèn thêm.", "Tính toán đôi khi còn thiếu cẩn thận, cần học kĩ lại bảng cửu chương."],
-      poor: ["Tính toán sai nhiều, chưa thuộc các bảng nhân chia đã học.", "Tiếp thu bài còn chậm, chưa nắm vững cấu tạo số."]
-    },
-    "3": {
-      excellent: ["Nắm vững kiến thức, có kỹ năng tính toán thành thạo.", "Thông minh, tính toán nhanh nhẹn.", "Giải toán nhanh, chính xác, cẩn thận.", "Nhận diện tốt hình khối, giải quyết tốt bài toán thực tế."],
-      good: ["Tiếp thu bài tốt, tính toán chính xác.", "Thực hiện tốt các yêu cầu của bài toán.", "Biết quan sát tranh và viết phép tính chính xác."],
-      fair: ["Biết thực hiện phép tính nhưng còn nhầm lẫn khi nhớ.", "Cần rèn tính cẩn thận hơn khi giải toán.", "Hoàn thành bài toán nhưng thao tác còn chậm."],
-      poor: ["Tiếp thu chậm, chưa hoàn thành bài, cố gắng hơn nhé.", "Kĩ năng tính toán còn chậm, hay bôi xóa nhiều.", "Chưa nắm chắc tên gọi các thành phần phép tính."]
-    },
-    "4": {
-      excellent: ["Nắm chắc kiến thức đã học. Tính toán thành thạo, giải toán đúng.", "Tiếp thu nhanh. Hiểu và làm chính xác các bài tập.", "Có tư duy toán tốt, tính toán cẩn thận, giải toán thành thạo."],
-      good: ["Học khá, biết tính thành thạo các phép tính.", "Tiếp thu bài khá tốt. Thực hành thành thạo các bài tập."],
-      fair: ["Nắm được kiến thức cơ bản tuy nhiên thực hiện phép tính còn chậm.", "Đã hoàn thành nội dung môn học nhưng tính toán còn hay nhầm lẫn."],
-      poor: ["Tiếp thu bài chậm, tính toán chưa cẩn thận, giải toán chưa tốt.", "Chưa nắm chắc kiến thức, kĩ năng môn học."]
-    },
-    "5": {
-      excellent: ["Học tốt, biết tính thành thạo chu vi và diện tích các hình học.", "Giỏi toán, tính nhanh thành thạo các phép tính.", "Sáng tạo trong giải toán có lời văn và giải các dạng toán phức tạp."],
-      good: ["Làm bài nhanh, kĩ năng tính toán tốt, trình bày sạch đẹp.", "Nắm vững kiến thức phân số, số thập phân và vận dụng khá tốt."],
-      fair: ["Làm đúng kết quả nhưng đặt tính chưa cẩn thận, cần chú ý.", "Biết giải toán nhưng đôi khi trình bày câu lời giải chưa đúng."],
-      poor: ["Tiếp thu chậm, tính toán sai nhiều, cần rèn luyện thêm.", "Chưa nắm vững các phép toán with phân số và số thập phân."]
-    },
     "general": {
-      excellent: ["Nắm vững kiến thức, kĩ năng giải toán thành thạo.", "Thông minh, tính toán nhanh nhẹn, chính xác."],
-      good: ["Học khá tốt môn Toán, tính toán cẩn thận.", "Nắm vững các phép tính cơ bản và biết ứng dụng."],
-      fair: ["Hoàn thành các dạng toán cơ bản nhưng còn chậm.", "Biết làm tính nhưng cần trình bày cẩn thận hơn."],
-      poor: ["Cần ôn luyện nhiều hơn các kĩ năng tính toán cơ bản.", "Còn lúng túng khi giải toán có lời văn."]
+      excellent: [
+        "Thực hiện tốt các phép tính và giải toán chính xác, nhanh nhẹn.",
+        "Vận dụng tốt kiến thức toán học vào thực hành và giải quyết tình huống thực tế.",
+        "Có tư duy toán học tốt, trình bày bài khoa học và đầy đủ.",
+        "Hoàn thành tốt nội dung chương trình môn Toán trong năm học.",
+        "Tích cực tham gia xây dựng bài, có nhiều tiến bộ nổi bật.",
+        "Kỹ năng tính toán chính xác, biết trình bày bài khoa học.",
+        "Thông minh, tiếp thu bài nhanh, giải toán đúng và đầy đủ."
+      ],
+      good: [
+        "Thực hiện đầy đủ các phép tính và bài toán cơ bản một cách tự tin.",
+        "Có nhiều cố gắng trong học tập và rèn luyện kĩ năng tính toán.",
+        "Biết xác định yêu cầu bài toán và chủ động hoàn thành các bài tập.",
+        "Hoàn thành nội dung chương trình môn học trong năm học.",
+        "Có tiến bộ trong kỹ năng giải toán và trình bày bài tương đối đầy đủ.",
+        "Tham gia học tập đầy đủ, có ý thức luyện tập thường xuyên."
+      ],
+      poor: [
+        "Cần luyện thêm kỹ năng tính toán và giải toán có lời văn.",
+        "Cần chú ý trình bày bài cẩn thận và khoa học hơn.",
+        "Cần đọc kỹ đề bài trước khi làm bài tập, hạn chế nhầm lẫn.",
+        "Cần tập trung hơn khi làm bài và mạnh dạn trao đổi khi chưa hiểu.",
+        "Cần chăm chỉ luyện tập thường xuyên hơn để nâng cao kết quả."
+      ]
     }
   },
   "Tiếng Việt": {
-    "1": {
-      excellent: ["Đọc trơn to, rõ ràng, lưu loát. Bài viết sạch đẹp, đúng nét, đúng độ cao.", "Phát âm chuẩn xác. Hiểu nội dung yêu cầu bài đọc, viết chữ nắn nót.", "Đọc chữ trôi chảy. Biết nhìn tranh nối từ và trả lời câu hỏi tốt."],
-      good: ["Đọc bài lưu loát, giọng đọc vừa đủ nghe. Điền khuyết đúng yêu cầu.", "Hoàn thành bài viết rõ ràng, nắm được luật chính tả cơ bản."],
-      fair: ["Đọc còn đánh vần chậm, viết chữ chưa đều nét, cần rèn luyện thêm.", "Đọc đúng nhưng giọng còn nhỏ. Chữ viết đôi khi còn sai khoảng cách."],
-      poor: ["Đọc ngập ngừng, chưa nhớ hết vần. Chữ viết chưa đúng mẫu, sai lỗi nhiều.", "Chưa có khả năng nghe - viết. Cần luyện đọc và viết nhiều hơn."]
-    },
-    "2": {
-      excellent: ["Đọc lưu loát, ngắt nghỉ đúng chỗ. Viết đoạn văn ngắn có hình ảnh hay.", "Chữ viết đều, đẹp. Trả lời câu hỏi lưu loát, diễn đạt câu trọn vẹn.", "Đọc to, rõ ràng. Biết dùng từ đặt câu đúng và viết văn lưu loát."],
-      good: ["Đọc bài tương đối tốt. Viết chữ rõ ràng, trình bày sạch sẽ.", "Kĩ năng đọc hiểu tốt. Viết được đoạn văn ngắn theo gợi ý."],
-      fair: ["Đọc bài to nhưng kĩ năng viết văn còn hạn chế, lặp từ nhiều.", "Chữ viết chưa đẹp, còn sai nét, ngắt nghỉ câu chưa đúng vị trí."],
-      poor: ["Kĩ năng đọc hiểu còn hạn chế. Viết chính tả sai nhiều lỗi.", "Chưa trả lời đúng nội dung câu hỏi, đoạn văn còn sơ sài."]
-    },
-    "3": {
-      excellent: ["Đọc bài to, rõ ràng, hiểu tốt nội dung bài đọc.", "Viết văn có hình ảnh sinh động, diễn đạt mạch lạc.", "Đọc lưu loát, viết chính tả và đặt câu tốt."],
-      good: ["Nắm vững nội dung môn học, hoàn thành tốt các bài tập.", "Đọc trôi chảy, viết đúng chính tả với tốc độ phù hợp."],
-      fair: ["Đọc đúng nhưng giọng đọc còn nhỏ, viết chính tả còn vài lỗi.", "Hiểu bài nhưng diễn đạt câu chưa thực sự trọn vẹn."],
-      poor: ["Kĩ năng đọc và viết còn hạn chế, rèn thêm nhé.", "Đọc còn ngập ngừng, viết sai chính tả nhiều."]
-    },
-    "4": {
-      excellent: ["Bước đầu biết đọc diễn cảm, trả lời tốt các câu hỏi.", "Bài văn có ý hay, chọn hình ảnh đẹp, diễn đạt tốt.", "Chữ viết sạch đẹp, đảm bảo tốc độ, đúng chính tả."],
-      good: ["Đọc bài to, rõ ràng, lưu loát. Biết ngắt nghỉ hợp lí.", "Biết sử dụng các biện pháp nghệ thuật trong viết văn."],
-      fair: ["Tốc độ viết bài còn chậm, cần đọc sách báo nhiều hơn.", "Bài tập làm văn còn sơ sài, cần chú ý sắp xếp ý văn."],
-      poor: ["Chưa kể được câu chuyện, đọc nhỏ và vấp nhiều.", "Tốc độ đọc viết quá chậm, cần rèn luyện tích cực."]
-    },
-    "5": {
-      excellent: ["Đọc to, rõ ràng lưu loát. Câu văn có hình ảnh phong phú, cảm xúc chân thành.", "Nắm vững vốn từ và đặt câu đúng. Viết văn lưu loát, sáng tạo."],
-      good: ["Đọc bài tương đối tốt, câu văn có hình ảnh hay.", "Chữ viết trình bày sạch đẹp, đọc rõ ràng hiểu nội dung."],
-      fair: ["Chữ viết chưa đẹp, kĩ năng đọc thành thạo nhưng cần rèn dùng từ.", "Hoàn thành nội dung môn học. Cần rèn đọc và viết diễn cảm hơn."],
-      poor: ["Chưa tập trung trong học tập, kỹ năng viết bị hạn chế, cần rèn chữ.", "Đọc còn hay vấp, viết đoạn văn lủng củng thiếu ý."]
-    },
     "general": {
-      excellent: ["Tiếp thu bài nhanh, kĩ năng đọc - hiểu và viết rất tốt.", "Đọc trôi chảy, diễn cảm, viết văn sáng tạo."],
-      good: ["Đọc viết khá thành thạo, chữ viết tương đối sạch đẹp."],
-      fair: ["Biết đọc và viết cơ bản nhưng cần luyện thêm tốc độ."],
-      poor: ["Mắc nhiều lỗi chính tả, đọc còn chậm và đánh vần."]
+      excellent: [
+        "Đọc lưu loát, diễn đạt rõ ràng và hiểu tốt nội dung bài học.",
+        "Viết đúng chính tả, trình bày bài sạch đẹp; dùng từ đặt câu phù hợp.",
+        "Có kỹ năng nghe, nói, đọc, viết tốt; hoàn thành tốt nội dung chương trình.",
+        "Biết vận dụng kiến thức Tiếng Việt vào giao tiếp và học tập hằng ngày.",
+        "Có nhiều tiến bộ nổi bật, tích cực tham gia phát biểu xây dựng bài.",
+        "Đọc to, rõ ràng và trả lời tốt các câu hỏi bài học.",
+        "Viết chữ đều nét, trình bày sạch đẹp, vốn từ phong phú.",
+        "Hiểu tốt nội dung bài đọc, diễn đạt trôi chảy, mạch lạc."
+      ],
+      good: [
+        "Đọc tốt các ngữ liệu và nắm vững nội dung cơ bản của bài học.",
+        "Viết đúng chính tả đúng độ cao, hoàn thành tốt các nhiệm vụ được giao.",
+        "Có cố gắng trong học tập và từng bước nâng cao kỹ năng đọc viết.",
+        "Hoàn thành nội dung chương trình môn học trong năm học.",
+        "Có ý thức rèn luyện kỹ năng sử dụng Tiếng Việt, trình bày bài sạch đẹp.",
+        "Đọc tương đối rõ ràng, biết trả lời các câu hỏi đơn giản."
+      ],
+      poor: [
+        "Cần luyện đọc thường xuyên hơn để nâng cao tốc độ và khả năng đọc hiểu.",
+        "Cần chú ý viết đúng chính tả và trình bày bài cẩn thận hơn.",
+        "Cần mạnh dạn hơn trong giao tiếp và phát biểu xây dựng bài.",
+        "Cần rèn thêm kỹ năng diễn đạt câu và viết đoạn văn.",
+        "Cần tập trung hơn trong giờ học và hoàn thành bài tập đầy đủ hơn."
+      ]
     }
   },
   "Tin học": {
     "general": {
-      excellent: ["Em thao tác tốt với chuột và bàn phím, thực hiện nhanh, chính xác.", "Thành thạo các kĩ năng, hoàn thành tốt các bài thực hành trên máy."],
-      good: ["Có kỹ năng sử dụng máy tính cơ bản khá tốt.", "Thực hành đầy đủ yêu cầu, nắm bắt các phần mềm học tập."],
-      fair: ["Đã làm quen được máy tính nhưng thao tác còn chậm.", "Cần luyện thêm tốc độ đánh máy và sử dụng chuột."],
-      poor: ["Kĩ năng thực hành trên máy tính còn rất hạn chế."]
+      excellent: [
+        "Thao tác tốt với chuột, bàn phím và các phần mềm học tập.",
+        "Hoàn thành tốt các bài thực hành; sử dụng máy tính đúng cách, an toàn.",
+        "Gõ bàn phím nhanh, chính xác; chủ động thực hiện các thao tác.",
+        "Có kỹ năng sử dụng máy tính tốt, tích cực tham gia giờ học thực hành.",
+        "Hoàn thành tốt nội dung chương trình môn Tin học trong năm học."
+      ],
+      good: [
+        "Thực hiện được các thao tác cơ bản trên máy tính theo hướng dẫn.",
+        "Hoàn thành các bài thực hành cơ bản; có cố gắng trong quá trình học tập.",
+        "Biết mở và tắt phần mềm đúng cách, có ý thức giữ gìn thiết bị.",
+        "Tham gia học tập đầy đủ, có tiến bộ trong kỹ năng thực hành.",
+        "Hoàn thành nội dung chương trình môn học trong năm học."
+      ],
+      poor: [
+        "Cần luyện thêm kỹ năng sử dụng chuột và bàn phím (đúng quy tắc gõ).",
+        "Cần thao tác cẩn thận hơn khi thực hành và tích cực phát biểu.",
+        "Cần tập trung hơn khi sử dụng máy tính, tránh làm việc riêng.",
+        "Cần mạnh dạn trao đổi khi chưa hiểu bài để hoàn thành bài thực hành.",
+        "Cần chăm chỉ luyện tập thêm để nâng cao kỹ năng sử dụng máy tính."
+      ]
     }
   },
   "Đạo đức": {
     "general": {
-      excellent: ["Nhận biết được hành vi đạo đức đúng, vận dụng tốt vào thực tiễn.", "Hăng hái phát biểu, tự giác thực hiện những hành động tốt.", "Có hành vi ứng xử phù hợp hoàn cảnh, thực hiện tốt nội quy."],
-      good: ["Hiểu được cách thức thể hiện những hành vi đạo đức đã học.", "Nêu tình huống và giải quyết theo nội dung bài học khá tốt.", "Nhận biết được hành vi đúng sai và biết điều chỉnh thái độ."],
-      fair: ["Hoàn thành kiến thức môn học, cần mạnh dạn hơn khi đưa ra cách xử lí.", "Nhận biết được hành vi chưa đúng nhưng đôi lúc chưa biết cách tự sửa."],
-      poor: ["Chưa áp dụng tốt các hành vi đạo đức đã học.", "Cần rèn luyện nhiều hơn các hành vi, ứng xử đúng mực trong cuộc sống."]
+      excellent: [
+        "Lễ phép với thầy cô và người lớn; đoàn kết, giúp đỡ bạn bè.",
+        "Thực hiện tốt nội quy trường lớp và giữ gìn vệ sinh chung.",
+        "Biết vận dụng bài học đạo đức vào thực tế cuộc sống.",
+        "Có tinh thần trách nhiệm, trung thực và tích cực tham gia hoạt động tập thể.",
+        "Có kỹ năng ứng xử phù hợp, có ý thức bảo vệ môi trường.",
+        "Trung thực trong học tập và sinh hoạt, là tấm gương sáng cho bạn bè."
+      ],
+      good: [
+        "Thực hiện tốt các yêu cầu cơ bản của môn học.",
+        "Có ý thức học tập, rèn luyện đạo đức và phân biệt được hành vi đúng sai.",
+        "Tham gia đầy đủ các hoạt động học tập, có cố gắng rèn luyện bản thân.",
+        "Biết hợp tác với bạn, lắng nghe và thực hiện theo hướng dẫn.",
+        "Hoàn thành nội dung chương trình môn học trong năm học."
+      ],
+      poor: [
+        "Cần mạnh dạn hơn khi tham gia các hoạt động tập thể và nhóm.",
+        "Cần thực hiện tốt hơn nội quy trường lớp và giữ vệ sinh cá nhân.",
+        "Cần chủ động hơn trong học tập và rèn luyện bản thân.",
+        "Cần biết chia sẻ, giúp đỡ và lắng nghe ý kiến của bạn bè.",
+        "Cần tự giác hơn trong học tập và rèn kỹ năng giao tiếp lịch sự."
+      ]
     }
   },
   "Tự nhiên và Xã hội": {
     "general": {
-      excellent: ["Nắm được nội dung bài học và vận dụng tốt kiến thức đã học vào thực tiễn.", "Có vốn hiểu biết về tự nhiên tốt, quan sát và suy luận giỏi.", "Tự giác tham gia và thực hiện tốt các hoạt động học tập khám phá."],
-      good: ["Biết phối hợp với các bạn trong nhóm để hoàn thành nhiệm vụ.", "Nhận biết tốt thế giới xung quanh, hoàn thành đầy đủ bài học.", "Chăm học bài, thích tìm hiểu kiến thức khoa học, tự nhiên."],
-      fair: ["Hoàn thành môn học, cần tập trung quan sát thực tế hơn.", "Nắm được kiến thức cơ bản nhưng cần mạnh dạn hơn khi phát biểu."],
-      poor: ["Vốn hiểu biết về tự nhiên còn hạn chế, ít tham gia hoạt động.", "Chưa nắm vững các kiến thức tự nhiên xã hội cơ bản."]
+      excellent: [
+        "Nắm vững kiến thức cơ bản và vận dụng tốt kiến thức vào thực tế.",
+        "Có khả năng quan sát, nhận xét và suy luận về các sự vật hiện tượng tốt.",
+        "Tích cực tham gia học tập, có tinh thần tìm tòi và khám phá.",
+        "Biết giữ gìn sức khỏe, vệ sinh cá nhân và bảo vệ môi trường sống.",
+        "Hoàn thành tốt nội dung chương trình môn học trong năm học."
+      ],
+      good: [
+        "Nắm vững nội dung cơ bản của bài học, tham gia tích cực hoạt động nhóm.",
+        "Hoàn thành tốt các bài tập, có nhiều cố gắng trong học tập.",
+        "Có tiến bộ trong nhận thức bài học và vận dụng vào thực tế đơn giản.",
+        "Hoàn thành nội dung chương trình môn học trong năm học."
+      ],
+      poor: [
+        "Cần chú ý ghi nhớ kiến thức bài học và hoàn thành bài tập đầy đủ hơn.",
+        "Cần mạnh dạn phát biểu và tích cực tham gia xây dựng bài.",
+        "Cần tập trung hơn khi học bài và chủ động tìm hiểu kiến thức mới.",
+        "Cần ôn tập thêm để nắm vững các sự vật, hiện tượng trong tự nhiên.",
+        "Cần cố gắng hơn trong các hoạt động khám phá và thảo luận nhóm."
+      ]
     }
   },
   "Khoa học": {
     "general": {
-      excellent: ["Hiểu bài, khám phá và vận dụng tốt kiến thức Khoa học vào cuộc sống.", "Chủ động nắm bắt và ghi nhớ kiến thức khoa học tự nhiên rất tốt."],
-      good: ["Nắm vững kiến thức khoa học đã học và biết liên hệ thực tế.", "Chăm học, hoàn thành tốt nội dung các bài tìm hiểu khoa học."],
-      fair: ["Hoàn thành nội dung môn học, cần tích cực quan sát hiện tượng thực tế hơn."],
-      poor: ["Chưa hoàn thành kiến thức kỹ năng môn Khoa học."]
+      excellent: [
+        "Hiểu bài sâu sắc, biết vận dụng kiến thức khoa học vào thực tế.",
+        "Có kỹ năng quan sát, thực hành và làm thí nghiệm tốt.",
+        "Tích cực tham gia hoạt động học tập, có tinh thần tìm tòi khám phá.",
+        "Chủ động nắm bắt và ghi nhớ kiến thức khoa học tự nhiên rất tốt.",
+        "Hoàn thành tốt nội dung chương trình môn học trong năm học."
+      ],
+      good: [
+        "Nắm được kiến thức cơ bản, hoàn thành các bài tập và thực hành cơ bản.",
+        "Có cố gắng trong học tập, có tiến bộ trong kỹ năng quan sát thực tế.",
+        "Biết phối hợp với bạn bè trong các hoạt động học tập trải nghiệm.",
+        "Hoàn thành nội dung chương trình môn học trong năm học."
+      ],
+      poor: [
+        "Cần ôn tập lại các kiến thức đã học và chú ý ghi nhớ nội dung bài.",
+        "Cần mạnh dạn hơn khi tham gia hoạt động nhóm và thí nghiệm.",
+        "Cần tích cực phát biểu xây dựng bài và tập trung nghe giảng.",
+        "Cần chăm chỉ học bài và rèn luyện kỹ năng quan sát hiện tượng.",
+        "Cần cố gắng hoàn thành đầy đủ các nhiệm vụ học tập môn Khoa học."
+      ]
     }
   },
   "Lịch sử và Địa lí": {
     "general": {
-      excellent: ["Nắm vững kiến thức lịch sử, địa lí, biết vận dụng vào thực tiễn tuyệt vời.", "Tiếp thu nhanh, ghi nhớ các sự kiện và đặc điểm địa lí rất tốt."],
-      good: ["Học khá, biết liên hệ kiến thức Lịch sử - Địa lí vào đời sống.", "Nắm vững kiến thức cơ bản và hoàn thành tốt bài học."],
-      fair: ["Nắm được kiến thức cơ bản nhưng cần tích cực chủ động hơn.", "Hoàn thành môn học, cần học kỹ hơn các mốc lịch sử, sự kiện."],
-      poor: ["Chưa hoàn thành kiến thức kĩ năng môn Lịch sử - Địa lí."]
+      excellent: [
+        "Nắm vững kiến thức lịch sử, địa lí; biết vận dụng liên hệ thực tế.",
+        "Có kỹ năng quan sát bản đồ, tranh ảnh và ghi nhớ sự kiện tốt.",
+        "Tích cực tham gia xây dựng bài, hoàn thành tốt các nhiệm vụ học tập.",
+        "Tiếp thu nhanh, ghi nhớ các đặc điểm địa lí và mốc lịch sử rất tốt.",
+        "Hoàn thành tốt nội dung chương trình môn học trong năm học."
+      ],
+      good: [
+        "Nắm vững kiến thức cơ bản của môn học, có tinh thần tự giác trong học tập.",
+        "Hoàn thành tốt các bài tập; biết xác định nội dung trên bản đồ.",
+        "Có tiến bộ trong học tập và tham gia thảo luận các vấn đề lịch sử.",
+        "Hoàn thành nội dung chương trình môn học trong năm học."
+      ],
+      poor: [
+        "Cần chú ý ghi nhớ các sự kiện lịch sử và đặc điểm địa lí cơ bản.",
+        "Cần luyện thêm kỹ năng quan sát bản đồ, sơ đồ và tranh ảnh.",
+        "Cần mạnh dạn phát biểu ý kiến và tích cực tham gia xây dựng bài.",
+        "Cần chăm chỉ học bài thường xuyên hơn để nắm vững kiến thức.",
+        "Cần tập trung nghe giảng để hiểu rõ các mối quan hệ địa lí, lịch sử."
+      ]
     }
   },
   "Công nghệ": {
     "general": {
-      excellent: ["Nắm vững kiến thức Công nghệ, vận dụng linh hoạt vào thực hành.", "Tích cực, chủ động tiếp thu bài, thao tác thủ công, kỹ thuật khéo léo."],
-      good: ["Học khá, biết vận dụng bài học công nghệ, kỹ thuật vào thực tiễn.", "Hoàn thành tốt các sản phẩm thực hành theo yêu cầu."],
-      fair: ["Hoàn thành các yêu cầu nội dung chương trình môn Công nghệ.", "Cần tích cực thực hành và chủ động hơn trong học tập."],
-      poor: ["Chưa hoàn thành kiến thức kĩ năng thực hành môn Công nghệ."]
+      excellent: [
+        "Biết sử dụng dụng cụ học tập đúng cách, an toàn và hiệu quả.",
+        "Thực hiện tốt các yêu cầu thực hành, thao tác khéo léo và cẩn thận.",
+        "Nắm vững kiến thức công nghệ, vận dụng linh hoạt vào các sản phẩm.",
+        "Tích cực tham gia các hoạt động thực hành, có ý thức giữ gìn sản phẩm.",
+        "Hoàn thành tốt nội dung chương trình môn học trong năm học."
+      ],
+      good: [
+        "Thực hiện được các thao tác cơ bản theo hướng dẫn của giáo viên.",
+        "Nắm vững các kĩ năng thực hành cơ bản; có tinh thần tự giác cao.",
+        "Biết sử dụng dụng cụ học tập phù hợp, có tiến bộ trong thực hành.",
+        "Hoàn thành nội dung chương trình môn học trong năm học."
+      ],
+      poor: [
+        "Cần thao tác cẩn thận và thực hiện đúng quy trình khi thực hành.",
+        "Cần chuẩn bị đầy đủ dụng cụ học tập và tích cực tham gia giờ học.",
+        "Cần tập trung nghe hướng dẫn để tránh nhầm lẫn khi làm sản phẩm.",
+        "Cần chăm chỉ luyện tập thêm để nâng cao kỹ năng khéo léo.",
+        "Cần cố gắng hoàn thành tốt các nhiệm vụ thực hành được giao.",
+      ]
     }
   },
   "Hoạt động trải nghiệm": {
     "general": {
-      excellent: ["Tự tin khi tham gia hoạt động tập thể, vận dụng tốt kỹ năng xử lý tình huống.", "Biết chia sẻ, khám phá bản thân và môi trường xung quanh rất tốt."],
-      good: ["Tham gia thảo luận tích cực, nhiệt tình, đoàn kết với bạn bè.", "Nhận biết được những việc nên và không nên làm, hoàn thành tốt nhiệm vụ."],
-      fair: ["Hoàn thành nội dung môn học, cần mạnh dạn hơn khi giao tiếp.", "Cần tự tin hơn khi tham gia các hoạt động tập thể."],
-      poor: ["Chưa mạnh dạn, chưa biết tự chăm sóc bản thân và xử lý tình huống.", "Cần tích cực tham gia các hoạt động trường lớp hơn."]
+      excellent: [
+        "Tích cực tham gia các hoạt động trải nghiệm và hoạt động tập thể.",
+        "Có kỹ năng hợp tác, giao tiếp và làm việc nhóm rất tốt.",
+        "Biết vận dụng kỹ năng sống vào thực tế; chủ động thực hiện nhiệm vụ.",
+        "Mạnh dạn, tự tin tham gia khám phá bản thân và môi trường xung quanh.",
+        "Có tinh thần trách nhiệm và ý thức tập thể cao trong công việc được giao."
+      ],
+      good: [
+        "Tích cực tham gia các hoạt động trải nghiệm cùng bạn bè.",
+        "Biết hợp tác với bạn trong hoạt động nhóm, có cố gắng hoàn thành nhiệm vụ.",
+        "Có tiến bộ trong giao tiếp và thực hiện các kỹ năng sống cơ bản.",
+        "Hoàn thành tốt nhiệm vụ học tập theo nội dung chương trình trong năm học.",
+        "Biết lắng nghe hướng dẫn và có tinh thần học tập tích cực."
+      ],
+      poor: [
+        "Cần mạnh dạn và tự tin hơn khi tham gia các hoạt động tập thể.",
+        "Cần tích cực và chủ động hơn trong thực hiện nhiệm vụ được giao.",
+        "Cần rèn thêm kỹ năng giao tiếp, hợp tác và làm việc nhóm.",
+        "Cần chú ý thực hiện nhiệm vụ đầy đủ và tự giác hơn.",
+        "Cần cố gắng rèn luyện kỹ năng tự phục vụ và kỹ năng sống cơ bản."
+      ]
     }
   },
   "Âm nhạc": {
     "general": {
-      excellent: ["Hát hay, biểu diễn tự nhiên, đúng giai điệu và cảm thụ âm nhạc tốt.", "Thuộc lời ca, tự tin kết hợp vận động phụ hoạ cho bài hát rất sinh động."],
-      good: ["Thuộc lời, hát đúng giai điệu bài hát, biết gõ đệm nhịp nhàng.", "Hát to rõ lời, hoàn thành tốt các nội dung âm nhạc trong tháng."],
-      fair: ["Biết hát theo giai điệu, cần mạnh dạn hơn khi kết hợp phụ họa.", "Thuộc bài hát cơ bản nhưng cần chú ý biểu diễn tự nhiên hơn."],
-      poor: ["Chưa thuộc lời bài hát, hát chưa đúng giai điệu.", "Nhút nhát, chưa tích cực tham gia các hoạt động âm nhạc."]
+      excellent: [
+        "Hát đúng giai điệu, lời ca và kết hợp vận động phụ họa phù hợp.",
+        "Có giọng hát rõ ràng, tự tin biểu diễn trước tập thể; thuộc lời nhanh.",
+        "Tích cực tham gia các hoạt động âm nhạc, cảm thụ âm nhạc tốt.",
+        "Biểu diễn tự nhiên, sinh động, hoàn thành tốt nội dung chương trình."
+      ],
+      good: [
+        "Thuộc lời bài hát và hát đúng nhịp ở mức cơ bản.",
+        "Có cố gắng trong luyện hát và tham gia các hoạt động âm nhạc.",
+        "Nắm vững các kĩ năng cơ bản của môn học, tham gia học tập tích cực.",
+        "Có tiến bộ trong kỹ năng biểu diễn và gõ đệm nhịp nhàng."
+      ],
+      poor: [
+        "Cần luyện hát rõ lời, đúng giai điệu và giữ đúng nhịp bài hát.",
+        "Cần mạnh dạn hơn khi tham gia biểu diễn trước lớp.",
+        "Cần tự tin hơn và tích cực tham gia các hoạt động tập thể.",
+        "Cần luyện tập thêm các động tác phụ họa cho bài hát.",
+        "Cần tập trung và chăm chỉ hơn trong các giờ học âm nhạc."
+      ]
     }
   },
   "Mĩ thuật": {
     "general": {
       excellent: ["Khéo tay, luôn hoàn thành bài vẽ/sản phẩm nhanh, đẹp, có sáng tạo.", "Biết chọn lọc màu sắc hài hoà, có mắt thẩm mỹ tốt, thể hiện ý tưởng phong phú và sáng tạo."],
-      good: ["Hoàn thành sản phẩm đúng yêu cầu, biết mô tả hình ảnh, màu sắc đẹp.", "Nắm được cách thực hành và vận dụng tạo sản phẩm đạt chất lượng tốt."],
-      fair: ["Hoàn thành bài tập mĩ thuật cơ bản, cần tô màu đều nét hơn.", "Sản phẩm đạt yêu cầu nhưng cần thêm sự sáng tạo và cẩn thận."],
+      good: ["Thực hiện sản phẩm đúng kĩ thuật, biết mô tả hình ảnh, màu sắc đẹp.", "Nắm vững cách thực hành và sáng tạo được sản phẩm đạt chất lượng tốt."],
+      fair: ["Hoàn thành bài tập mĩ thuật cơ bản, cần tô màu đều nét hơn.", "Sản phẩm đảm bảo các tiêu chí nhưng cần thêm sự sáng tạo và cẩn thận."],
       poor: ["Chưa hoàn thành sản phẩm mĩ thuật, nét vẽ còn lúng túng.", "Chưa có ý thức chuẩn bị đồ dùng học tập vẽ."]
     }
   },
