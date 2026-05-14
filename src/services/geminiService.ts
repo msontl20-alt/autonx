@@ -21,7 +21,7 @@ export interface GenerateCommentParams {
   subject: string;
   score: number | string;
   level: string;
-  period: "GK1" | "CK1" | "GK2" | "CK2";
+  period: "GK1" | "CK1" | "GK2" | "CK2" | "CN";
   gradeLevel: string;
   config?: AIConfig;
 }
@@ -39,7 +39,9 @@ export async function generateAIComment({
   const model = "gemini-3-flash-preview";
 
   const isMidTerm = period.startsWith("GK");
-  const periodText = isMidTerm ? "Giữa kỳ (ghi nhận tiến bộ bước đầu)" : "Cuối kỳ (đánh giá tổng hợp)";
+  const isYearEnd = period === "CN";
+  let periodText = isMidTerm ? "Giữa kỳ (ghi nhận tiến bộ bước đầu)" : "Cuối kỳ (đánh giá tổng hợp)";
+  if (isYearEnd) periodText = "Tổng kết cuối năm (đánh giá toàn diện cả năm học)";
 
   const toneMap = {
     cheerful: "Vui vẻ, phấn khởi",
@@ -65,7 +67,8 @@ ${config?.avoidKeywords?.length ? `- TUYỆT ĐỐI KHÔNG sử dụng các từ
 
 Quy tắc Thông tư 27:
 - Giữa kì (GK1, GK2): Tập trung ghi nhận sự tiến bộ bước đầu, những ưu điểm mới.
-- Cuối kì (CK1, CK2): Đánh giá tổng hợp sự tiến bộ của cả quá trình.
+- Cuối kì (CK1, CK2): Đánh giá tổng hợp sự tiến bộ của cả quá trình kì học.
+- Cuối năm (CN): Đánh giá tổng quát toàn bộ quá trình học tập cả năm, nhấn mạnh sự trưởng thành và phát triển của học sinh.
 - Mức T/HTT: Khen ngợi tích cực, làm nổi bật sự xuất sắc hoặc sáng tạo.
 - Mức H/HT: Ghi nhận sự cố gắng, tiến bộ của học sinh.
 - Mức C/CCG: Nhắc nhở nhẹ nhàng, đưa ra lời khuyên cụ thể để khắc phục hạn chế.
@@ -131,7 +134,8 @@ ${globalConfig?.avoidKeywords?.length ? `- TUYỆT ĐỐI KHÔNG sử dụng cá
 Quy tắc nội dung (Thông tư 27):
 1. Thời điểm & Tính chất:
    - GK1/GK2: Ghi nhận sự tiến bộ, hứng thú ban đầu.
-   - CK1/CK2: Tổng kết năng lực, phẩm chất và định hướng lâu dài.
+   - CK1/CK2: Tổng kết năng lực, phẩm chất và định hướng lâu dài của học kì.
+   - CN (Cuối năm): Đánh giá tổng quát toàn bộ quá trình học tập cả năm, nhấn mạnh sự trưởng thành và phát triển cá nhân.
 2. Mức đánh giá & Điểm số:
    - Tốt (T/HTT) & Điểm 9,10: Khen ngợi sự hào hứng, sáng tạo, nắm vững kiến thức nâng cao.
    - Khá - Tốt & Điểm 7,8: Khen ngợi sự chắc chắn, cẩn thận, nắm vững kiến thức và kỹ năng môn học. 

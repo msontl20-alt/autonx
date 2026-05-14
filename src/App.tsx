@@ -203,9 +203,11 @@ export default function App() {
   const [studentsData, setStudentsData] = useState<StudentData[]>([]);
   const [workbook, setWorkbook] = useState<XLSX.WorkBook | null>(null);
   const [sheetName, setSheetName] = useState("");
+  const [availableSheets, setAvailableSheets] = useState<string[]>([]);
+  const [showSheetSelector, setShowSheetSelector] = useState(false);
   const [originalFileName, setOriginalFileName] = useState("");
   const [isProcessed, setIsProcessed] = useState(false);
-  const [selectedPeriods, setSelectedPeriods] = useState<Set<"GK1" | "CK1" | "GK2" | "CK2">>(new Set(["CK1"]));
+  const [selectedPeriods, setSelectedPeriods] = useState<Set<"GK1" | "CK1" | "GK2" | "CK2" | "CN">>(new Set(["CK1"]));
   const [filterEmptyComments, setFilterEmptyComments] = useState(false);
   const [showConfirm, setShowConfirm] = useState<{type: 'all' | 'comments', action: () => void} | null>(null);
 
@@ -217,9 +219,10 @@ export default function App() {
     studentId: "",
     periods: {
       GK1: { score: "", level: "", comment: "" },
-      CK1: { score: "", level: "", comment: "" },
-      GK2: { score: "", level: "", comment: "" },
-      CK2: { score: "", level: "", comment: "" },
+      CK1: { score: "", level: "" , comment: "" },
+      GK2: { score: "", level: "" , comment: "" },
+      CK2: { score: "", level: "" , comment: "" },
+      CN: { score: "", level: "", comment: "" },
     }
   });
   const [autoLevel, setAutoLevel] = useState(true);
@@ -234,6 +237,9 @@ export default function App() {
   });
   const [isGeneratingAI, setIsGeneratingAI] = useState(false);
   const [isRegeneratingSingle, setIsRegeneratingSingle] = useState(false);
+  const [isProcessingFile, setIsProcessingFile] = useState(false);
+  const [processingProgress, setProcessingProgress] = useState(0);
+  const [fileError, setFileError] = useState<string | null>(null);
   const [avoidKeywordsInput, setAvoidKeywordsInput] = useState("");
   const [managingLibrary, setManagingLibrary] = useState(false);
   const [editingPersonalId, setEditingPersonalId] = useState<string | null>(null);
@@ -242,9 +248,11 @@ export default function App() {
   const [personalCategoryFilter, setPersonalCategoryFilter] = useState("Tất cả");
   const [newPersonalText, setNewPersonalText] = useState("");
   const [newPersonalCategory, setNewPersonalCategory] = useState("Chung");
+  const [bankPeriodType, setBankPeriodType] = useState<"regular" | "yearEnd">("regular");
   const [newSubjectName, setNewSubjectName] = useState("");
   const [isAddingSubject, setIsAddingSubject] = useState(false);
   const [showingHelp, setShowingHelp] = useState(false);
+  const [showingSettings, setShowingSettings] = useState(false);
   const [foundationSearch, setFoundationSearch] = useState("");
 
   // Bank State (Editable)
@@ -273,9 +281,19 @@ export default function App() {
       
       gradesToInclude.forEach(g => {
         if (subData[g]) {
-          Object.entries(subData[g]).forEach(([lvl, texts]) => {
-            if (Array.isArray(texts)) {
-              texts.forEach(t => list.push({ 
+          Object.entries(subData[g]).forEach(([lvl, val]) => {
+            if (lvl === 'yearEnd' && val && typeof val === 'object' && !Array.isArray(val)) {
+              Object.entries(val).forEach(([subLvl, texts]) => {
+                if (Array.isArray(texts)) {
+                  texts.forEach(t => list.push({
+                    text: t,
+                    category: `${subject}${g === 'general' ? ' (Chung)' : ''} - Cuối năm: ${subLvl}`,
+                    type: 'system'
+                  }));
+                }
+              });
+            } else if (Array.isArray(val)) {
+              val.forEach(t => list.push({ 
                 text: t, 
                 category: `${subject}${g === 'general' ? ' (Chung)' : ''} - ${lvl}`, 
                 type: 'system' 
@@ -296,7 +314,7 @@ export default function App() {
 
   // UI State
   const [toast, setToast] = useState<{msg: string, type: 'success' | 'error'} | null>(null);
-  const [editingStudent, setEditingStudent] = useState<{idx: number, period: "GK1" | "CK1" | "GK2" | "CK2"} | null>(null);
+  const [editingStudent, setEditingStudent] = useState<{idx: number, period: "GK1" | "CK1" | "GK2" | "CK2" | "CN"} | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const showToast = (msg: string, type: 'success' | 'error' = 'success') => {
@@ -304,11 +322,52 @@ export default function App() {
     setTimeout(() => setToast(null), 3000);
   };
 
+  const hasApiKey = useMemo(() => !!process.env.GEMINI_API_KEY, []);
+
+  useEffect(() => {
+    if (useAI && !hasApiKey) {
+      showToast("Chưa cấu hình GEMINI_API_KEY! Vui lòng thiết lập trong Cài đặt.", "error");
+    }
+  }, [useAI, hasApiKey]);
+
   useEffect(() => {
     const savedPersonalId = localStorage.getItem('report_helper_personal_comments_v2_id');
     if (savedPersonalId) {
       try {
-        setPersonalComments(JSON.parse(savedPersonalId));
+        const loaded = JSON.parse(savedPersonalId);
+        
+        // Migration for specific phrases to be more natural (Circular 27)
+        const migrationFlag = localStorage.getItem('report_helper_phrase_migration_v27');
+        if (!migrationFlag) {
+          const phraseMap = [
+            { target: "Hoàn thành các yêu cầu", replacement: "Đáp ứng tốt các yêu cầu của bài học" },
+            { target: "Hoàn thành các bài tập", replacement: "Nắm vững kiến thức và tích cực thực hành bài tập" },
+            { target: "Hoàn thành nội dung học tập", replacement: "Chủ động củng cố tri thức và rèn luyện kỹ năng" },
+            { target: "Hoàn thành các nhiệm vụ", replacement: "Nỗ lực và đạt kết quả tốt trong các hoạt động học tập" }
+          ];
+
+          let changed = false;
+          const migrated = loaded.map((c: any) => {
+            let newText = c.text;
+            phraseMap.forEach(p => {
+              if (newText.includes(p.target)) {
+                changed = true;
+                newText = newText.replace(new RegExp(p.target, 'g'), p.replacement);
+              }
+            });
+            return changed ? { ...c, text: newText } : c;
+          });
+
+          if (changed) {
+            setPersonalComments(migrated);
+            localStorage.setItem('report_helper_personal_comments_v2_id', JSON.stringify(migrated));
+          } else {
+            setPersonalComments(loaded);
+          }
+          localStorage.setItem('report_helper_phrase_migration_v27', 'true');
+        } else {
+          setPersonalComments(loaded);
+        }
       } catch (e) {
         console.error("Error loading personal comments with IDs", e);
       }
@@ -490,176 +549,265 @@ export default function App() {
   }, [personalComments, personalSearch, personalCategoryFilter]);
 
   const handleFiles = (file: File) => {
-    setOriginalFileName(file.name);
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      try {
-        const data = new Uint8Array(e.target?.result as ArrayBuffer);
-        const wb = XLSX.read(data, {type: 'array', cellStyles: true});
-        const sn = wb.SheetNames[0];
-        const ws = wb.Sheets[sn];
-        const aoa = XLSX.utils.sheet_to_json(ws, {header: 1, defval: ""}) as any[][];
+    if (!file) return;
+    
+    // Check file type
+    const validTypes = ['application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'application/vnd.ms-excel', 'text/csv'];
+    if (!validTypes.includes(file.type) && !file.name.match(/\.(xlsx|xls|csv)$/i)) {
+      showToast("Định dạng file không hỗ trợ! Vui lòng chọn file .xlsx, .xls hoặc .csv", "error");
+      return;
+    }
 
-        setWorkbook(wb);
+    setOriginalFileName(file.name);
+    setIsProcessingFile(true);
+    setProcessingProgress(10);
+    setFileError(null);
+
+    const reader = new FileReader();
+    
+    reader.onprogress = (event) => {
+      if (event.lengthComputable) {
+        const progress = Math.round((event.loaded / event.total) * 40) + 10;
+        setProcessingProgress(progress);
+      }
+    };
+
+    reader.onload = (e) => {
+      setProcessingProgress(50);
+      setTimeout(() => {
+        try {
+          const data = new Uint8Array(e.target?.result as ArrayBuffer);
+          const wb = XLSX.read(data, {type: 'array', cellStyles: true});
+          setWorkbook(wb);
+          setProcessingProgress(70);
+          
+          if (wb.SheetNames.length === 0) {
+            throw new Error("File Excel không có sheet nào!");
+          }
+
+          if (wb.SheetNames.length > 1) {
+            setAvailableSheets(wb.SheetNames);
+            setShowSheetSelector(true);
+            setIsProcessingFile(false);
+          } else {
+            processSheet(wb, wb.SheetNames[0]);
+          }
+        } catch (err: any) {
+          console.error(err);
+          const msg = err.message || "Lỗi đọc file Excel!";
+          setFileError(msg);
+          showToast(msg, "error");
+          setIsProcessingFile(false);
+          setOriginalFileName("");
+        }
+      }, 100);
+    };
+
+    reader.onerror = () => {
+      setFileError("Lỗi đọc file từ đĩa!");
+      showToast("Lỗi đọc file từ đĩa!", "error");
+      setIsProcessingFile(false);
+      setOriginalFileName("");
+    };
+
+    reader.readAsArrayBuffer(file);
+  };
+
+  const processSheet = (wb: XLSX.WorkBook, sn: string) => {
+    setIsProcessingFile(true);
+    setProcessingProgress(75);
+    setFileError(null);
+
+    setTimeout(() => {
+      try {
+        const ws = wb.Sheets[sn];
+        if (!ws) {
+          throw new Error(`Không tìm thấy sheet "${sn}"!`);
+        }
+        
+        const aoa = XLSX.utils.sheet_to_json(ws, {header: 1, defval: ""}) as any[][];
+        if (aoa.length === 0) {
+          throw new Error("Sheet này không có dữ liệu!");
+        }
+
+        setProcessingProgress(85);
         setSheetName(sn);
         setRawDataAOA(aoa);
 
         // Find Headers
         let hIdx = -1;
-        for (let i = 0; i < Math.min(15, aoa.length); i++) {
+        for (let i = 0; i < Math.min(25, aoa.length); i++) {
           const row = aoa[i];
-          if (row.some(cell => typeof cell === 'string' && (cell.toLowerCase().includes('tên') || cell.toLowerCase().includes('họ và')))) {
+          if (row.some(cell => {
+            if (typeof cell !== 'string') return false;
+            const c = cell.toLowerCase();
+            return c.includes('tên') || c.includes('họ và') || c.includes('stt') || c.includes('mã hs');
+          })) {
             hIdx = i;
             break;
           }
         }
-        if (hIdx === -1) hIdx = 0;
+        
+        if (hIdx === -1) {
+          // If no obvious headers found, use first row that has content
+          for (let i = 0; i < aoa.length; i++) {
+            if (aoa[i].some(c => c !== "")) {
+              hIdx = i;
+              break;
+            }
+          }
+        }
+
+        if (hIdx === -1) {
+          throw new Error("Không thể xác định hàng tiêu đề của bảng!");
+        }
+
         setHeaderRowIndex(hIdx);
-
-        const h = aoa[hIdx].map((val, i) => val ? String(val).trim() : `Column_${i}`);
+        const h = aoa[hIdx].map((val, i) => val ? String(val).trim() : `Cột_${i}`);
+        
+        if (h.length === 0) {
+          throw new Error("Hàng tiêu đề không có nội dung!");
+        }
+        
         setHeaders(h);
+        setProcessingProgress(90);
 
-        // Get sample data (first valid row after header)
+        // Get sample data
         let sample: Record<string, any> = {};
+        let foundSample = false;
         for (let i = hIdx + 1; i < aoa.length; i++) {
           if (aoa[i].some((c: any) => c !== "")) {
             h.forEach((col, idx) => {
               sample[col] = aoa[i][idx] || "";
             });
+            foundSample = true;
             break;
           }
         }
         setSampleRow(sample);
 
-        // Auto detect config from file name and headers
-        const cleanName = removeAccents(file.name.toLowerCase());
-        
-        // 1. Subject Detection (Filename + Content scan)
-        let detectedSubject = "Toán";
-        const subjectKeywords: Record<string, string[]> = {
-          "Toán": ["toan", "math"],
-          "Tiếng Việt": ["tieng viet", " tv ", "mon tv"],
-          "Tin học": ["tin hoc", " tin ", "it"],
-          "Tiếng Anh": ["tieng anh", " anh ", "english", " t.anh"],
-          "Đạo đức": ["dao duc", " dd "],
-          "Tự nhiên và Xã hội": ["tu nhien", "tnxh", "tn&xh"],
-          "Khoa học": ["khoa hoc", " kh "],
-          "Lịch sử và Địa lí": ["lich su", "dia li", "lsdl", "ls&dl", "ls dl"],
-          "Công nghệ": ["cong nghe", " cn "],
-          "Hoạt động trải nghiệm": ["hoat dong", "hdtn", "trai nghiem"],
-          "Âm nhạc": ["am nhac", " an "],
-          "Mĩ thuật": ["mi thuat", " mt "],
-          "Giáo dục thể chất": ["the chat", "gdtc", "the duc"],
-        };
+      // Auto detect config...
+      const cleanName = removeAccents(originalFileName || sn).toLowerCase();
+      
+      // 1. Subject Detection
+      let detectedSubject = "Toán";
+      const subjectKeywords: Record<string, string[]> = {
+        "Toán": ["toan", "math"],
+        "Tiếng Việt": ["tieng viet", " tv ", "mon tv"],
+        "Tin học": ["tin hoc", " tin ", "it"],
+        "Tiếng Anh": ["tieng anh", " anh ", "english", " t.anh"],
+        "Đạo đức": ["dao duc", " dd "],
+        "Tự nhiên và Xã hội": ["tu nhien", "tnxh", "tn&xh"],
+        "Khoa học": ["khoa hoc", " kh "],
+        "Lịch sử và Địa lí": ["lich su", "dia li", "lsdl", "ls&dl", "ls dl"],
+        "Công nghệ": ["cong nghe", " cn "],
+        "Hoạt động trải nghiệm": ["hoat dong", "hdtn", "trai nghiem"],
+        "Âm nhạc": ["am nhac", " an "],
+        "Mĩ thuật": ["mi thuat", " mt "],
+        "Giáo dục thể chất": ["the chat", "gdtc", "the duc"],
+      };
 
-        const detectFromStr = (str: string) => {
-          for (const [sub, keywords] of Object.entries(subjectKeywords)) {
-            if (keywords.some(k => str.includes(k))) return sub;
-          }
-          return null;
-        };
+      const detectFromStr = (str: string) => {
+        for (const [sub, keywords] of Object.entries(subjectKeywords)) {
+          if (keywords.some(k => str.includes(k))) return sub;
+        }
+        return null;
+      };
 
-        const fromName = detectFromStr(cleanName);
-        if (fromName) {
-          detectedSubject = fromName;
-        } else {
-          // Scan content for "Môn: Toán" or similar
-          for (let i = 0; i < Math.min(15, aoa.length); i++) {
-            const rowStr = removeAccents(aoa[i].join(' ').toLowerCase());
-            const fromContent = detectFromStr(rowStr);
-            if (fromContent) {
-              detectedSubject = fromContent;
-              break;
-            }
+      const fromName = detectFromStr(cleanName);
+      if (fromName) {
+        detectedSubject = fromName;
+      } else {
+        for (let i = 0; i < Math.min(15, aoa.length); i++) {
+          const rowStr = removeAccents(aoa[i].join(' ').toLowerCase());
+          const fromContent = detectFromStr(rowStr);
+          if (fromContent) {
+            detectedSubject = fromContent;
+            break;
           }
         }
-        setSubject(detectedSubject);
-
-        // 2. Grade Detection (Filename first, then deep scan)
-        let detectedGrade = "general";
-        const gradeMatch = cleanName.match(/(lop|khoi|k)\s*([12345])/);
-        if (gradeMatch) {
-          detectedGrade = gradeMatch[2];
-        } else {
-          // Deep scan first 10 rows for "Lớp: 3A" or "Khối 2"
-          for (let i = 0; i < Math.min(10, aoa.length); i++) {
-            const rowStr = removeAccents(aoa[i].join(' ').toLowerCase());
-            const m = rowStr.match(/(lop|khoi)\s*([12345])/);
-            if (m) {
-              detectedGrade = m[2];
-              break;
-            }
-          }
-        }
-        // Priority: Auto Detection first, but we can potentially merge with saved if headers match
-        const mapping = detectMappings(h);
-        
-        // Merge with defaults if they exist and are valid for this file
-        const savedStr = localStorage.getItem('report_helper_default_config');
-        if (savedStr) {
-          try {
-            const saved = JSON.parse(savedStr);
-            const hSet = new Set(h);
-            
-            // Apply saved mapping for fields not strongly detected or always prefer saved if header matches
-            if (saved.colMapping) {
-              const sm = saved.colMapping;
-              if (sm.name && hSet.has(sm.name)) mapping.name = sm.name;
-              if (sm.studentId && hSet.has(sm.studentId)) mapping.studentId = sm.studentId;
-              
-              (["GK1", "CK1", "GK2", "CK2"] as const).forEach(p => {
-                if (sm.periods[p].score && hSet.has(sm.periods[p].score)) mapping.periods[p].score = sm.periods[p].score;
-                if (sm.periods[p].level && hSet.has(sm.periods[p].level)) mapping.periods[p].level = sm.periods[p].level;
-                if (sm.periods[p].comment && hSet.has(sm.periods[p].comment)) mapping.periods[p].comment = sm.periods[p].comment;
-              });
-            }
-            
-            // Only use saved subject/grade if detection was "general/Toán" (weak detection)
-            if (detectedSubject === "Toán" && saved.subject) detectedSubject = saved.subject;
-            if (detectedGrade === "general" && saved.gradeLevel) detectedGrade = saved.gradeLevel;
-            
-          } catch (e) {
-            console.error("Error loading default config during upload", e);
-          }
-        }
-
-        setGradeLevel(detectedGrade);
-        setSubject(detectedSubject);
-        setColMapping(mapping);
-
-        // 3. Period Detection
-        const hStr = h.join(' ').toLowerCase();
-        const activePeriods = new Set<"GK1" | "CK1" | "GK2" | "CK2">();
-        
-        if (cleanName.includes('gk1') || hStr.includes('gk1')) activePeriods.add("GK1");
-        if (cleanName.includes('ck1') || cleanName.includes('hoc ky 1') || hStr.includes('ck1')) activePeriods.add("CK1");
-        if (cleanName.includes('gk2') || hStr.includes('gk2')) activePeriods.add("GK2");
-        if (cleanName.includes('ck2') || cleanName.includes('hoc ky 2') || hStr.includes('ck2')) activePeriods.add("CK2");
-        
-        if (activePeriods.size === 0) activePeriods.add("CK2");
-        setSelectedPeriods(activePeriods);
-
-        // Extract student data
-        const students: StudentData[] = [];
-        for (let i = hIdx + 1; i < aoa.length; i++) {
-          const row = aoa[i];
-          if (row.some(cell => cell !== "")) {
-            let s: StudentData = {_rowIndex: i};
-            h.forEach((col, colIndex) => {
-              s[col] = row[colIndex] ?? "";
-            });
-            students.push(s);
-          }
-        }
-        setStudentsData(students);
-        showToast("Tải file thành công!");
-      } catch (err) {
-        console.error(err);
-        showToast("Lỗi đọc file Excel!", "error");
       }
-    };
-    reader.readAsArrayBuffer(file);
-  };
+      setSubject(detectedSubject);
+
+      // 2. Grade Detection
+      let detectedGrade = "general";
+      const gradeMatch = cleanName.match(/(lop|khoi|k)\s*([12345])/);
+      if (gradeMatch) {
+        detectedGrade = gradeMatch[2];
+      } else {
+        for (let i = 0; i < Math.min(10, aoa.length); i++) {
+          const rowStr = removeAccents(aoa[i].join(' ').toLowerCase());
+          const m = rowStr.match(/(lop|khoi)\s*([12345])/);
+          if (m) {
+            detectedGrade = m[2];
+            break;
+          }
+        }
+      }
+      const mapping = detectMappings(h);
+      
+      const savedStr = localStorage.getItem('report_helper_default_config');
+      if (savedStr) {
+        try {
+          const saved = JSON.parse(savedStr);
+          const hSet = new Set(h);
+          if (saved.colMapping) {
+            const sm = saved.colMapping;
+            if (sm.name && hSet.has(sm.name)) mapping.name = sm.name;
+            if (sm.studentId && hSet.has(sm.studentId)) mapping.studentId = sm.studentId;
+            (["GK1", "CK1", "GK2", "CK2"] as const).forEach(p => {
+              if (sm.periods[p].score && hSet.has(sm.periods[p].score)) mapping.periods[p].score = sm.periods[p].score;
+              if (sm.periods[p].level && hSet.has(sm.periods[p].level)) mapping.periods[p].level = sm.periods[p].level;
+              if (sm.periods[p].comment && hSet.has(sm.periods[p].comment)) mapping.periods[p].comment = sm.periods[p].comment;
+            });
+          }
+          if (detectedSubject === "Toán" && saved.subject) detectedSubject = saved.subject;
+          if (detectedGrade === "general" && saved.gradeLevel) detectedGrade = saved.gradeLevel;
+        } catch (e) {}
+      }
+
+      setGradeLevel(detectedGrade);
+      setSubject(detectedSubject);
+      setColMapping(mapping);
+
+      // 3. Period Detection
+      const hStr = h.join(' ').toLowerCase();
+      const activePeriods = new Set<"GK1" | "CK1" | "GK2" | "CK2">();
+      if (cleanName.includes('gk1') || hStr.includes('gk1')) activePeriods.add("GK1");
+      if (cleanName.includes('ck1') || cleanName.includes('hoc ky 1') || hStr.includes('ck1')) activePeriods.add("CK1");
+      if (cleanName.includes('gk2') || hStr.includes('gk2')) activePeriods.add("GK2");
+      if (cleanName.includes('ck2') || cleanName.includes('hoc ky 2') || hStr.includes('ck2')) activePeriods.add("CK2");
+      if (activePeriods.size === 0) activePeriods.add("CK2");
+      setSelectedPeriods(activePeriods);
+
+      const students: StudentData[] = [];
+      for (let i = hIdx + 1; i < aoa.length; i++) {
+        const row = aoa[i];
+        if (row.some(cell => cell !== "")) {
+          let s: StudentData = {_rowIndex: i};
+          h.forEach((col, colIndex) => { s[col] = row[colIndex] ?? ""; });
+          students.push(s);
+        }
+      }
+      setStudentsData(students);
+      setShowSheetSelector(false);
+      setProcessingProgress(100);
+      showToast("Tải sheet thành công!");
+      
+      // Delay closing processing state for feedback
+      setTimeout(() => {
+        setIsProcessingFile(false);
+      }, 500);
+    } catch (err: any) {
+      console.error(err);
+      const msg = err.message || "Lỗi xử lý dữu liệu sheet!";
+      setFileError(msg);
+      showToast(msg, "error");
+      setIsProcessingFile(false);
+      setOriginalFileName("");
+    }
+  }, 100);
+};
 
   // Config Actions
   const detectMappings = (h: string[]) => {
@@ -671,6 +819,7 @@ export default function App() {
         CK1: { score: "", level: "", comment: "" },
         GK2: { score: "", level: "", comment: "" },
         CK2: { score: "", level: "", comment: "" },
+        CN: { score: "", level: "", comment: "" },
       }
     };
 
@@ -708,7 +857,7 @@ export default function App() {
     mapping.studentId = findBestMatch(h, ["Mã học sinh", "Mã số học sinh", "Mã số", "MSHS", "Mã HS", "Số hiệu", "Mã định danh", "Mã định danh học sinh", "Mã định danh cá nhân", "ID", "Student ID", "SIS ID", "Ma HS", "Ma so HS"]);
 
     // Period specific fields
-    let lastDetectedPeriod: "GK1" | "CK1" | "GK2" | "CK2" | null = null;
+    let lastDetectedPeriod: "GK1" | "CK1" | "GK2" | "CK2" | "CN" | null = null;
     h.forEach((col) => {
       const clean = removeAccents(col.toLowerCase().trim());
       
@@ -716,12 +865,14 @@ export default function App() {
       const ck1 = ["ck1", "cuoi ky 1", "cuoi ki 1", "cuoi hoc ky 1", "hk1", "hoc ky 1", "cuoi hk1", "c.ky 1", "cky 1", "final 1", "semester 1", "hoc ky i", "ck i", "cuoi ky i"];
       const gk2 = ["gk2", "giua ky 2", "giua ki 2", "giua hoc ky 2", "giua hk2", "g.ky 2", "gky 2", "midterm 2", "mid-term 2", "gk ii", "giua ky ii"];
       const ck2 = ["ck2", "cuoi ky 2", "cuoi ki 2", "cuoi hoc ky 2", "hk2", "hoc ky 2", "cuoi hk2", "c.ky 2", "cky 2", "final 2", "semester 2", "hoc ky ii", "ck ii", "cuoi ky ii"];
+      const cn = ["cn", "ca nam", "ca hoc ky", "cuoi nam", "tong ket nam", "year end", "final grade", "ket qua ca nam"];
       
-      let periodInCol: "GK1" | "CK1" | "GK2" | "CK2" | null = null;
+      let periodInCol: "GK1" | "CK1" | "GK2" | "CK2" | "CN" | null = null;
       if (gk1.some(k => clean.includes(removeAccents(k)))) periodInCol = "GK1";
       else if (ck1.some(k => clean.includes(removeAccents(k)))) periodInCol = "CK1";
       else if (gk2.some(k => clean.includes(removeAccents(k)))) periodInCol = "GK2";
       else if (ck2.some(k => clean.includes(removeAccents(k)))) periodInCol = "CK2";
+      else if (cn.some(k => clean.includes(removeAccents(k)))) periodInCol = "CN";
 
       if (periodInCol) lastDetectedPeriod = periodInCol;
       const targetPeriod = periodInCol || lastDetectedPeriod || "CK2";
@@ -775,6 +926,7 @@ export default function App() {
         CK1: { score: "", level: "", comment: "" },
         GK2: { score: "", level: "", comment: "" },
         CK2: { score: "", level: "", comment: "" },
+        CN: { score: "", level: "", comment: "" },
       }
     });
     showToast("Đã xóa toàn bộ ánh xạ!");
@@ -804,7 +956,7 @@ export default function App() {
             if (mapped.name && !hSet.has(mapped.name)) mapped.name = "";
             if (mapped.studentId && !hSet.has(mapped.studentId)) mapped.studentId = "";
             
-            (["GK1", "CK1", "GK2", "CK2"] as const).forEach(p => {
+            (["GK1", "CK1", "GK2", "CK2", "CN"] as const).forEach(p => {
               if (mapped.periods[p].score && !hSet.has(mapped.periods[p].score)) mapped.periods[p].score = "";
               if (mapped.periods[p].level && !hSet.has(mapped.periods[p].level)) mapped.periods[p].level = "";
               if (mapped.periods[p].comment && !hSet.has(mapped.periods[p].comment)) mapped.periods[p].comment = "";
@@ -823,12 +975,13 @@ export default function App() {
     }
   };
 
-  const generateSingleComment = useCallback((s: StudentData, period: "GK1" | "CK1" | "GK2" | "CK2") => {
+  const generateSingleComment = useCallback((s: StudentData, period: "GK1" | "CK1" | "GK2" | "CK2" | "CN") => {
     const pMap = colMapping.periods[period];
     let scoreStr = pMap.score ? String(s[pMap.score]).replace(',', '.') : "";
     let levelStr = pMap.level ? String(s[pMap.level]).toUpperCase().trim() : "";
     
     const isMidTerm = period.startsWith("GK");
+    const isYearEnd = period === "CN";
     let category = "";
     if (scoreStr && !isNaN(parseFloat(scoreStr)) && !isMidTerm) {
       const score = parseFloat(scoreStr);
@@ -837,21 +990,49 @@ export default function App() {
       else if (score >= 5) category = "fair";
       else category = "poor";
     } else if (levelStr) {
-      if (levelStr === 'T' || levelStr.includes('TỐT') || levelStr === 'HTX') category = "excellent";
-      else if (levelStr === 'H' || levelStr.includes('HOÀN THÀNH')) category = Math.random() > 0.5 ? "good" : "fair";
-      else if (levelStr === 'C' || levelStr.includes('CHƯA')) category = "poor";
+      if (levelStr === 'T' || levelStr.includes('TỐT') || levelStr === 'HTX' || levelStr === 'HTT') category = "excellent";
+      else if (levelStr === 'H' || levelStr.trim() === 'HT' || levelStr.includes('HOÀN THÀNH')) category = Math.random() > 0.5 ? "good" : "fair";
+      else if (levelStr === 'C' || levelStr.includes('CHƯA') || levelStr === 'CHT') category = "poor";
     } else {
       category = Math.random() > 0.3 ? "good" : "fair";
     }
 
     const getRandom = (arr: string[]) => arr[Math.floor(Math.random() * arr.length)];
     const subjectData = bankSubjects[subject] || bankSubjects["Toán"];
-    const bank = subjectData[gradeLevel] || subjectData["general"];
+    const gradeData = subjectData[gradeLevel] || subjectData["general"];
+    
+    let list = [];
+    if (isYearEnd) {
+      const yearEndData = (gradeData as any).yearEnd || { excellent: [], good: [], fair: [], poor: [] };
+      list = yearEndData[category] || gradeData[category] || gradeData["fair"];
+    } else {
+      list = gradeData[category] || gradeData["fair"];
+    }
 
-    let comment = getRandom(bank[category] || bank["fair"]);
+    let rawComment = getRandom(list && list.length > 0 ? list : (gradeData[category] || gradeData["fair"]));
+    let comment = rawComment;
+
+    if (aiConfig.includeName && colMapping.name) {
+      const fullName = String(s[colMapping.name] || "").trim();
+      if (fullName) {
+        // Extract just the first/calling name if possible, or use full name
+        const nameParts = fullName.split(' ');
+        const callingName = nameParts[nameParts.length - 1];
+        
+        // Randomly choose between "Em [Tên], ..." and "[Lời nhận xét] ([Tên])" or just prefixing
+        const style = Math.random();
+        if (style > 0.6) {
+          comment = `Em ${callingName}, ${rawComment.charAt(0).toLowerCase()}${rawComment.slice(1)}`;
+        } else if (style > 0.3) {
+          comment = `${rawComment} (${callingName})`;
+        } else {
+          comment = `${callingName} ${rawComment.charAt(0).toLowerCase()}${rawComment.slice(1)}`;
+        }
+      }
+    }
 
     return { category, comment };
-  }, [subject, gradeLevel, colMapping, bankSubjects, bankCompetencies, bankQualities]);
+  }, [subject, gradeLevel, colMapping, bankSubjects, bankCompetencies, bankQualities, aiConfig.includeName]);
 
   const processComments = () => {
     if (!colMapping.name) {
@@ -1192,6 +1373,14 @@ export default function App() {
           </div>
           <div className="flex items-center gap-2">
             <button 
+              onClick={() => setShowingSettings(true)}
+              className="flex items-center gap-2 bg-blue-700/50 hover:bg-blue-700 text-white px-4 py-2 rounded-xl text-sm font-semibold transition-all border border-blue-400/30"
+              title="Cài đặt khóa API và hệ thống"
+            >
+              <Settings size={18} />
+              <span className="hidden sm:inline">Cài đặt</span>
+            </button>
+            <button 
               onClick={() => setShowingHelp(true)}
               className="flex items-center gap-2 bg-blue-700/50 hover:bg-blue-700 text-white px-4 py-2 rounded-xl text-sm font-semibold transition-all border border-blue-400/30"
             >
@@ -1219,23 +1408,58 @@ export default function App() {
               <h2 className="font-semibold text-gray-700">Tải bảng điểm Excel</h2>
             </div>
             
-            {!originalFileName ? (
-              <div 
-                onClick={() => fileInputRef.current?.click()}
-                className="flex-grow cursor-pointer border-2 border-dashed border-gray-200 rounded-xl bg-gray-50 flex flex-col items-center justify-center p-8 transition-all hover:border-blue-400 hover:bg-blue-50"
-              >
-                <input 
-                  type="file" 
-                  ref={fileInputRef} 
-                  className="hidden" 
-                  accept=".xlsx,.xls,.csv"
-                  onChange={(e) => e.target.files?.[0] && handleFiles(e.target.files[0])}
-                />
-                <div className="bg-blue-100 p-4 rounded-full text-blue-600 mb-4">
-                  <Upload size={32} />
+            {isProcessingFile ? (
+              <div className="flex-grow border-2 border-blue-200 rounded-xl bg-blue-50/30 flex flex-col items-center justify-center p-8 space-y-4">
+                <RefreshCw size={32} className="text-blue-500 animate-spin" />
+                <div className="w-full max-w-[200px] bg-blue-100 h-2 rounded-full overflow-hidden">
+                  <motion.div 
+                    initial={{ width: 0 }}
+                    animate={{ width: `${processingProgress}%` }}
+                    className="h-full bg-blue-500"
+                  />
                 </div>
-                <p className="text-sm font-medium text-gray-600">Chọn file từ máy tính</p>
-                <p className="text-xs text-gray-400 mt-1">Hỗ trợ: .xlsx, .xls</p>
+                <p className="text-xs font-bold text-blue-700 uppercase tracking-widest">Đang xử lý {processingProgress}%</p>
+                <p className="text-[10px] text-blue-500 text-center">Vui lòng đợi trong giây lát...</p>
+              </div>
+            ) : !originalFileName ? (
+              <div className="flex flex-col gap-3 flex-grow">
+                <div 
+                  onClick={() => fileInputRef.current?.click()}
+                  className={cn(
+                    "flex-grow cursor-pointer border-2 border-dashed rounded-xl bg-gray-50 flex flex-col items-center justify-center p-8 transition-all hover:border-blue-400 hover:bg-blue-50",
+                    fileError ? "border-red-200 bg-red-50/30" : "border-gray-200"
+                  )}
+                >
+                  <input 
+                    type="file" 
+                    ref={fileInputRef} 
+                    className="hidden" 
+                    accept=".xlsx,.xls,.csv"
+                    onChange={(e) => e.target.files?.[0] && handleFiles(e.target.files[0])}
+                  />
+                  <div className={cn(
+                    "p-4 rounded-full mb-4",
+                    fileError ? "bg-red-100 text-red-600" : "bg-blue-100 text-blue-600"
+                  )}>
+                    {fileError ? <FileCheck size={32} /> : <Upload size={32} />}
+                  </div>
+                  <p className="text-sm font-medium text-gray-600">Chọn file từ máy tính</p>
+                  <p className="text-xs text-gray-400 mt-1">Hỗ trợ: .xlsx, .xls</p>
+                </div>
+
+                {fileError && (
+                  <motion.div 
+                    initial={{ opacity: 0, y: 5 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="p-3 bg-red-50 border border-red-200 rounded-xl flex items-start gap-2"
+                  >
+                    <X className="text-red-500 shrink-0 mt-0.5" size={14} />
+                    <div className="flex flex-col">
+                      <p className="text-[10px] font-bold text-red-700 uppercase leading-none mb-1">Lỗi tệp tin</p>
+                      <p className="text-[11px] text-red-600 leading-tight">{fileError}</p>
+                    </div>
+                  </motion.div>
+                )}
               </div>
             ) : (
               <div className="bg-green-50 border border-green-100 p-4 rounded-xl flex items-center justify-between">
@@ -1340,8 +1564,8 @@ export default function App() {
                     <Calendar size={14} className="text-orange-500" />
                     3. Kỳ đánh giá
                   </label>
-                  <div className="grid grid-cols-2 gap-2">
-                    {(["GK1", "CK1", "GK2", "CK2"] as const).map((period) => (
+                  <div className="grid grid-cols-5 gap-1.5">
+                    {(["GK1", "CK1", "GK2", "CK2", "CN"] as const).map((period) => (
                       <button 
                         key={period}
                         onClick={() => {
@@ -1351,22 +1575,22 @@ export default function App() {
                           setSelectedPeriods(newSet);
                         }}
                         className={cn(
-                          "flex items-center justify-between px-3 py-2.5 rounded-xl border transition-all group relative overflow-hidden",
+                          "flex items-center justify-between px-2 py-2 rounded-xl border transition-all group relative overflow-hidden",
                           selectedPeriods.has(period) 
                             ? "bg-orange-50 border-orange-200 text-orange-700 shadow-sm ring-1 ring-orange-100" 
                             : "bg-gray-50 border-gray-100 text-gray-400 hover:border-orange-200 hover:bg-white"
                         )}
                       >
                         <div className="flex flex-col items-start min-w-0">
-                          <span className="text-[10px] font-black">{period}</span>
-                          <span className="text-[8px] opacity-70 whitespace-nowrap overflow-hidden text-ellipsis">
-                            {period.startsWith('G') ? 'Giữa kỳ' : 'Cuối kỳ'} {period.endsWith('1') ? 'I' : 'II'}
+                          <span className="text-[9px] font-black">{period}</span>
+                          <span className="text-[7px] opacity-70 whitespace-nowrap overflow-hidden text-ellipsis">
+                            {period === 'CN' ? 'Cả năm' : (period.startsWith('G') ? 'Giữa kỳ' : 'Cuối kỳ')}
                           </span>
                         </div>
                         {selectedPeriods.has(period) ? (
-                          <CheckCircle size={14} className="text-orange-500" />
+                          <CheckCircle size={10} className="text-orange-500" />
                         ) : (
-                          <PlusCircle size={14} className="text-gray-200 group-hover:text-orange-300" />
+                          <PlusCircle size={10} className="text-gray-200 group-hover:text-orange-300" />
                         )}
                       </button>
                     ))}
@@ -1394,6 +1618,22 @@ export default function App() {
                   <label className="flex items-center gap-2 cursor-pointer group">
                     <input 
                       type="checkbox" 
+                      checked={aiConfig.includeName}
+                      onChange={e => setAIConfig({ ...aiConfig, includeName: e.target.checked })}
+                      className="w-4 h-4 rounded text-blue-600 border-gray-300 focus:ring-blue-500"
+                    />
+                    <div className="flex flex-col">
+                      <span className="text-xs text-blue-600 font-bold group-hover:text-blue-700 transition-colors flex items-center gap-1">
+                        <User size={12} />
+                        Chèn tên học sinh vào nhận xét
+                      </span>
+                      <span className="text-[9px] text-gray-400 italic">Áp dụng cho cả AI và Ngân hàng nhận xét</span>
+                    </div>
+                  </label>
+
+                  <label className="flex items-center gap-2 cursor-pointer group">
+                    <input 
+                      type="checkbox" 
                       checked={useAI} 
                       onChange={e => setUseAI(e.target.checked)}
                       className="w-4 h-4 rounded text-indigo-600 border-gray-300 focus:ring-indigo-500"
@@ -1413,6 +1653,23 @@ export default function App() {
                       animate={{ height: "auto", opacity: 1 }}
                       className="mt-2 p-3 bg-indigo-50 rounded-xl border border-indigo-100 flex flex-col gap-3"
                     >
+                      {!hasApiKey && (
+                        <div className="p-3 bg-red-50 rounded-xl border border-red-200 flex flex-col gap-2 shadow-sm">
+                          <div className="flex items-center gap-2 text-red-600">
+                            <Key size={14} />
+                            <span className="text-[11px] font-bold">Chưa cấu hình API Key</span>
+                          </div>
+                          <p className="text-[10px] text-red-700 leading-relaxed">
+                            Vui lòng thiết lập <b>GEMINI_API_KEY</b> trong phần <b>Cài đặt</b> để sử dụng tính năng AI này.
+                          </p>
+                          <button 
+                            onClick={() => setShowingSettings(true)}
+                            className="bg-red-600 text-white py-1.5 rounded-lg text-[10px] font-bold hover:bg-red-700 transition-colors"
+                          >
+                            Thiết lập ngay
+                          </button>
+                        </div>
+                      )}
                       <div>
                         <label className="block text-[10px] font-bold text-indigo-400 uppercase mb-1">Giọng điệu</label>
                         <select 
@@ -1454,20 +1711,6 @@ export default function App() {
                           className="w-full text-xs p-1.5 rounded border border-indigo-200 bg-white placeholder:text-[10px]"
                         />
                       </div>
-                      <div className="pt-1">
-                        <label className="flex items-center gap-2 cursor-pointer group">
-                          <input 
-                            type="checkbox" 
-                            checked={aiConfig.includeName}
-                            onChange={e => setAIConfig({ ...aiConfig, includeName: e.target.checked })}
-                            className="w-3 h-3 rounded text-indigo-600 border-gray-300 focus:ring-indigo-500"
-                          />
-                          <span className="text-[10px] text-indigo-600 font-bold group-hover:text-indigo-700 transition-colors">
-                            Chèn tên học sinh vào nhận xét
-                          </span>
-                        </label>
-                      </div>
-
                       <div className="pt-1 border-t border-indigo-100/50">
                         <label className="block text-[10px] font-bold text-indigo-400 uppercase mb-1 flex items-center justify-between">
                           <span className="flex items-center gap-1">
@@ -1650,7 +1893,7 @@ export default function App() {
                   {/* Period Mappings */}
                   {Array.from(selectedPeriods).length > 0 ? (
                     <div className="space-y-3">
-                      {(["GK1", "CK1", "GK2", "CK2"] as const).filter(p => selectedPeriods.has(p)).map(period => (
+                      {(["GK1", "CK1", "GK2", "CK2", "CN"] as const).filter(p => selectedPeriods.has(p)).map(period => (
                         <motion.div 
                           initial={{ opacity: 0, x: -10 }}
                           animate={{ opacity: 1, x: 0 }}
@@ -1810,7 +2053,7 @@ export default function App() {
                     <tr>
                       <th className="px-6 py-4 border-b border-gray-100 font-bold text-gray-400 text-[10px] uppercase tracking-wider w-12 text-center">STT</th>
                       <th className="px-6 py-4 border-b border-gray-100 font-bold text-gray-400 text-[10px] uppercase tracking-wider w-40">Họ và Tên</th>
-                      {((["GK1", "CK1", "GK2", "CK2"] as const).filter(p => selectedPeriods.has(p))).map(period => (
+                      {((["GK1", "CK1", "GK2", "CK2", "CN"] as const).filter(p => selectedPeriods.has(p))).map(period => (
                         <th key={period} className="px-4 py-4 border-b border-gray-100 font-bold text-gray-400 text-[10px] uppercase tracking-wider min-w-[200px]">
                           Nhận xét {period}
                         </th>
@@ -1865,7 +2108,7 @@ export default function App() {
                               </button>
                             </div>
                           </td>
-                          {((["GK1", "CK1", "GK2", "CK2"] as const).filter(p => selectedPeriods.has(p))).map(period => {
+                          {((["GK1", "CK1", "GK2", "CK2", "CN"] as const).filter(p => selectedPeriods.has(p))).map(period => {
                             const pMap = colMapping.periods[period];
                             const level = s[pMap.level];
                             const levelColor = level === 'T' ? 'bg-green-100 text-green-700 border-green-200' : (level === 'H' ? 'bg-yellow-100 text-yellow-700 border-yellow-200' : (level === 'C' ? 'bg-red-100 text-red-700 border-red-200' : 'bg-gray-100 text-gray-500 border-gray-200'));
@@ -1924,7 +2167,7 @@ export default function App() {
                                           newS[idx] = {...newS[idx], [pMap.comment]: comment};
                                           setStudentsData(newS);
                                         }}
-                                        className="text-blue-500 hover:text-blue-700 p-0.5"
+                                        className="text-blue-500 hover:text-blue-700 p-0.5 bg-blue-50 rounded"
                                         title="Tạo lại nhận xét cho HS này"
                                       >
                                         <Wand2 size={12} />
@@ -1935,7 +2178,7 @@ export default function App() {
                                           const commentValue = s[pMap.comment];
                                           if (commentValue) savePersonalComment(commentValue, `${subject} - ${period}`);
                                         }}
-                                        className="text-pink-500 hover:text-pink-700 p-0.5"
+                                        className="text-pink-500 hover:text-pink-700 p-0.5 bg-pink-50 rounded"
                                         title="Lưu vào thư viện cá nhân"
                                       >
                                         <Heart size={12} fill={personalComments.some(c => c.text === (s[colMapping.periods[period].comment] || "")) ? "currentColor" : "none"} />
@@ -1980,6 +2223,69 @@ export default function App() {
           )}
         </AnimatePresence>
       </main>
+
+      {/* Confirmation Dialog */}
+      <AnimatePresence>
+        {showSheetSelector && (
+          <>
+            <motion.div 
+              initial={{opacity: 0}}
+              animate={{opacity: 1}}
+              exit={{opacity: 0}}
+              className="fixed inset-0 bg-black/60 backdrop-blur-md z-[150]"
+            />
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9, x: "-50%", y: "-40%" }}
+              animate={{ opacity: 1, scale: 1, x: "-50%", y: "-50%" }}
+              exit={{ opacity: 0, scale: 0.8, x: "-50%", y: "-40%" }}
+              className="fixed top-1/2 left-1/2 z-[160] bg-white rounded-3xl shadow-2xl p-8 w-[90%] max-w-lg border border-gray-100"
+            >
+              <div className="bg-blue-100 text-blue-600 w-16 h-16 rounded-2xl flex items-center justify-center mb-6 mx-auto">
+                <FileSpreadsheet size={32} />
+              </div>
+              <h3 className="text-xl font-bold text-gray-800 text-center mb-2">Chọn bảng dữ liệu (Sheet)</h3>
+              <p className="text-sm text-gray-500 text-center mb-8">
+                File của bạn có nhiều trang tính. Vui lòng chọn sheet chứa danh sách điểm cần xử lý.
+              </p>
+              
+              <div className="grid gap-2 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
+                {availableSheets.map((sn) => (
+                  <button
+                    key={sn}
+                    onClick={() => {
+                      if (workbook) {
+                        processSheet(workbook, sn);
+                      }
+                    }}
+                    className="flex items-center justify-between p-4 rounded-xl border border-gray-100 hover:border-blue-400 hover:bg-blue-50 transition-all text-left group"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-gray-50 rounded-lg group-hover:bg-white transition-colors">
+                        <FileSpreadsheet size={16} className="text-gray-400 group-hover:text-blue-500" />
+                      </div>
+                      <span className="font-semibold text-gray-700 group-hover:text-blue-700">{sn}</span>
+                    </div>
+                    <ChevronDown size={14} className="text-gray-300 -rotate-90 group-hover:text-blue-400" />
+                  </button>
+                ))}
+              </div>
+
+              <div className="mt-8">
+                <button 
+                  onClick={() => {
+                    setShowSheetSelector(false);
+                    setWorkbook(null);
+                    setAvailableSheets([]);
+                  }}
+                  className="w-full py-3 rounded-xl font-bold text-gray-400 hover:text-gray-600 transition-all"
+                >
+                  Hủy và chọn file khác
+                </button>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
 
       {/* Confirmation Dialog */}
       <AnimatePresence>
@@ -2132,7 +2438,18 @@ export default function App() {
                 <div className="bg-blue-50/50 p-4 rounded-2xl border border-blue-100 flex flex-col gap-3">
                   <div className="flex items-center justify-between">
                     <h4 className="text-[10px] font-black text-blue-500 uppercase tracking-widest">Nội dung nhận xét hiện tại</h4>
-                    <span className="text-[10px] text-gray-400 italic">Bạn có thể gõ trực tiếp vào đây để chỉnh sửa</span>
+                    <button 
+                      onClick={() => {
+                        const pMap = colMapping.periods[editingStudent.period];
+                        const comment = studentsData[editingStudent.idx][pMap.comment];
+                        if (comment) savePersonalComment(comment, `${subject} - ${editingStudent.period}`);
+                      }}
+                      className="flex items-center gap-1.5 px-3 py-1 bg-pink-100 text-pink-700 hover:bg-pink-200 rounded-full font-bold text-[9px] transition-all shadow-sm border border-pink-200"
+                      title="Lưu nhận xét này vào thư viện của bạn"
+                    >
+                      <Heart size={10} fill={personalComments.some(c => c.text === (studentsData[editingStudent.idx][colMapping.periods[editingStudent.period].comment] || "")) ? "currentColor" : "none"} />
+                      Lưu vào thư viện cá nhân
+                    </button>
                   </div>
                   <textarea 
                     value={studentsData[editingStudent.idx][colMapping.periods[editingStudent.period].comment] || ""}
@@ -2311,10 +2628,15 @@ export default function App() {
                                 setStudentsData(newS);
                                 showToast("Đã chọn từ thư viện cá nhân");
                               }}
-                              className="w-full h-full text-left p-2.5 rounded-xl border border-pink-100 text-[10px] hover:border-pink-300 hover:bg-pink-50 transition-all leading-tight relative"
+                              className="w-full h-full text-left p-3 rounded-xl border-2 border-indigo-400 bg-white text-[10px] hover:border-indigo-600 hover:bg-indigo-50/30 transition-all leading-tight relative shadow-sm"
                             >
-                              <div className="text-pink-400 text-[8px] font-bold mb-1 uppercase opacity-60">{item.category}</div>
-                              {item.text}
+                              <div className="flex items-center justify-between mb-1.5">
+                                <div className="text-pink-400 text-[8px] font-bold uppercase opacity-60">{item.category}</div>
+                                <div className="flex items-center gap-1 bg-indigo-50 text-indigo-600 px-1.5 py-0.5 rounded-full text-[7px] font-black border border-indigo-100">
+                                  <User size={8} /> Cá nhân
+                                </div>
+                              </div>
+                              <div className="text-gray-700">{item.text}</div>
                               <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 flex gap-1">
                                 <button 
                                   onClick={(e) => {
@@ -2388,6 +2710,146 @@ export default function App() {
                   className="text-xs text-red-500 font-bold hover:underline"
                 >
                   Xóa trắng
+                </button>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {showingSettings && (
+          <>
+            <motion.div 
+              initial={{opacity: 0}}
+              animate={{opacity: 1}}
+              exit={{opacity: 0}}
+              onClick={() => setShowingSettings(false)}
+              className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[150]"
+            />
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="fixed inset-4 md:inset-auto md:top-1/2 md:left-1/2 md:-translate-x-1/2 md:-translate-y-1/2 md:w-[600px] bg-white rounded-3xl shadow-2xl z-[160] flex flex-col max-h-[90vh] overflow-hidden border border-gray-100"
+            >
+              <div className="p-6 border-b border-gray-100 flex items-center justify-between bg-indigo-600 text-white">
+                <div className="flex items-center gap-3">
+                  <div className="bg-white/20 p-2 rounded-lg">
+                    <Settings size={24} />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-lg">Cài đặt hệ thống</h3>
+                    <p className="text-xs text-indigo-100">Cấu hình API Key và các tùy chọn AI</p>
+                  </div>
+                </div>
+                <button 
+                  onClick={() => setShowingSettings(false)}
+                  className="p-2 hover:bg-white/10 rounded-full transition-colors"
+                >
+                  <X size={24} />
+                </button>
+              </div>
+
+              <div className="flex-grow overflow-y-auto p-8 space-y-6">
+                <div className="bg-indigo-50 border border-indigo-200 p-6 rounded-3xl space-y-4">
+                  <div className="flex items-center gap-3">
+                    <div className="bg-indigo-600 text-white p-2 rounded-xl">
+                      <Key size={20} />
+                    </div>
+                    <h4 className="font-bold text-indigo-900">Thiết lập GEMINI_API_KEY</h4>
+                  </div>
+                  
+                  <p className="text-sm text-indigo-700 leading-relaxed">
+                    Tính năng AI giúp viết nhận xét tự động đòi hỏi phải có <b>Khóa API Gemini</b>. 
+                    Dưới đây là hướng dẫn quan trọng để thiết lập khóa này vào môi trường ứng dụng:
+                  </p>
+
+                  <div className="space-y-5 pt-2">
+                    <div className="flex gap-4 items-start bg-white p-3 rounded-2xl border border-indigo-100">
+                      <div className="w-8 h-8 rounded-xl bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold text-sm shrink-0">1</div>
+                      <div className="space-y-1">
+                        <p className="text-xs font-bold text-indigo-900 uppercase tracking-wider">Vị trí cài đặt hệ thống</p>
+                        <p className="text-[11px] text-indigo-700 leading-relaxed">
+                          Tìm biểu tượng <b>Bánh răng (Settings)</b> ở <span className="bg-amber-100 px-1 rounded font-bold text-amber-800">góc dưới bên trái</span> của màn hình làm việc (thanh menu dọc của nền tảng).
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex gap-4 items-start bg-white p-3 rounded-2xl border border-indigo-100">
+                      <div className="w-8 h-8 rounded-xl bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold text-sm shrink-0">2</div>
+                      <div className="space-y-1">
+                        <p className="text-xs font-bold text-indigo-900 uppercase tracking-wider">Tab Secrets & Biến môi trường</p>
+                        <p className="text-[11px] text-indigo-700 leading-relaxed">
+                          Chọn tab <b>"Secrets"</b> ở trên cùng thanh điều hướng của bảng Settings hiện lên.
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex gap-4 items-start bg-white p-4 rounded-2xl border-2 border-indigo-200 shadow-sm relative">
+                      <div className="w-8 h-8 rounded-xl bg-indigo-600 text-white flex items-center justify-center font-bold text-sm shrink-0 shadow-lg shadow-indigo-200">3</div>
+                      <div className="space-y-2">
+                        <p className="text-xs font-bold text-indigo-900 uppercase tracking-wider flex items-center gap-2">
+                          Nhập Key & Value
+                        </p>
+                        <p className="text-[11px] text-indigo-700 leading-relaxed">
+                          Nhấn nút <b>"Add Secret"</b>: <br/>
+                          - Ô <b>Key</b>: Nhập chính xác <code className="bg-indigo-100 px-1.5 py-0.5 rounded font-black text-indigo-800 border border-indigo-200">GEMINI_API_KEY</code><br/>
+                          - Ô <b>Value</b>: Dán mã khóa API (lấy từ Google AI Studio) của bạn vào.
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex gap-4 items-start bg-blue-600 p-5 rounded-3xl shadow-xl shadow-blue-100 relative overflow-hidden group">
+                      <div className="absolute top-0 right-0 p-4 opacity-10 rotate-12 group-hover:scale-110 transition-transform">
+                        <Save size={64} />
+                      </div>
+                      <div className="w-8 h-8 rounded-xl bg-white text-blue-600 flex items-center justify-center font-bold text-sm shrink-0 shadow-lg">4</div>
+                      <div className="space-y-2 relative z-10">
+                         <p className="text-xs font-bold text-white uppercase tracking-widest flex items-center gap-2">
+                           Bước quan trọng nhất: LƯU & DEPLOY
+                         </p>
+                         <p className="text-[11px] text-blue-50 text-balance leading-relaxed">
+                           Cuộn xuống dưới cùng của bảng Secrets và nhấn nút <b className="bg-white text-green-600 px-2 rounded">SAVE</b> (Màu xanh). <br/>
+                           Sau đó, một thông báo xuất hiện, nhấn tiếp nút <b className="bg-white text-blue-600 px-2 rounded">DEPLOY</b> để cập nhật hệ thống.
+                         </p>
+                         <div className="mt-2 p-2 bg-white/20 backdrop-blur-sm border border-white/30 rounded-xl text-white text-[10px] font-medium flex gap-2 items-center">
+                            <RefreshCw size={14} className="shrink-0 animate-[spin_4s_linear_infinite]" />
+                            Hệ thống sẽ tải lại một lát, sau đó AI sẽ hoạt động bình thường.
+                         </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-gray-50 border border-gray-100 p-6 rounded-3xl space-y-4">
+                   <h4 className="text-xs font-black text-gray-400 uppercase tracking-widest">Tiện ích khác</h4>
+                   <div className="flex flex-col gap-3">
+                      <button 
+                        onClick={() => {
+                          if (confirm("Xóa toàn bộ dữ liệu mẫu và bản thảo hiện tại?")) {
+                            localStorage.removeItem('report_helper_current_draft');
+                            window.location.reload();
+                          }
+                        }}
+                        className="w-full flex items-center justify-between p-4 rounded-2xl bg-white border border-gray-100 hover:border-red-200 hover:bg-red-50 transition-all text-left group"
+                      >
+                        <div className="flex items-center gap-3 text-gray-700 font-semibold group-hover:text-red-700 text-sm">
+                          <RotateCcw size={16} />
+                          Xóa bản thảo & Tải lại ứng dụng
+                        </div>
+                        <ChevronDown size={14} className="-rotate-90 text-gray-300" />
+                      </button>
+                   </div>
+                </div>
+              </div>
+
+              <div className="p-6 border-t border-gray-100 bg-gray-50 flex justify-center">
+                <button 
+                  onClick={() => setShowingSettings(false)}
+                  className="px-8 py-3 bg-indigo-600 text-white rounded-2xl font-bold shadow-lg shadow-indigo-100"
+                >
+                  Đóng cài đặt
                 </button>
               </div>
             </motion.div>
@@ -2506,21 +2968,58 @@ export default function App() {
                   </div>
                 </div>
 
-                <div className="bg-indigo-50 border border-indigo-100 p-4 rounded-2xl flex gap-3">
-                  <Key className="text-indigo-500 shrink-0" size={18} />
-                  <div>
-                    <h5 className="text-xs font-bold text-indigo-800">Cách thiết lập AI (Gemini API Key):</h5>
-                    <p className="text-[11px] text-indigo-700 leading-relaxed mt-1">
-                      Để sử dụng tính năng gợi ý thông minh, bạn cần thêm khóa API:
-                    </p>
-                    <ol className="text-[10px] text-indigo-600 mt-2 space-y-1 list-decimal ml-4">
-                      <li>Nhấn vào biểu tượng <b>Settings</b> (Bánh răng) ở menu bên trái.</li>
-                      <li>Chọn mục <b>Secrets</b>.</li>
-                      <li>Nhấn <b>Add Secret</b>.</li>
-                      <li>Phần <b>Key</b> điền: <code className="bg-indigo-100 px-1 rounded font-bold">GEMINI_API_KEY</code></li>
-                      <li>Phần <b>Value</b> dán mã API Key của bạn vào.</li>
-                      <li>Nhấn <b>Save</b> và <b>Deploy</b> để áp dụng.</li>
-                    </ol>
+                <div className="bg-indigo-50 border border-indigo-200 p-6 rounded-3xl flex flex-col gap-4 shadow-sm">
+                  <div className="flex items-center gap-4">
+                    <div className="bg-indigo-600 p-3 rounded-2xl shadow-lg shadow-indigo-100">
+                      <Key className="text-white" size={24} />
+                    </div>
+                    <div>
+                      <h5 className="text-base font-bold text-indigo-900">Cách kích hoạt AI thông minh (Gemini)</h5>
+                      <p className="text-[11px] text-indigo-600 font-medium">Cần thiết lập khóa API để sử dụng tính năng viết tự động</p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-2">
+                    <div className="bg-white p-3 rounded-2xl border border-indigo-100 space-y-2">
+                      <div className="flex items-center gap-2">
+                        <span className="w-6 h-6 rounded-lg bg-indigo-600 text-white text-[11px] flex items-center justify-center font-bold">1</span>
+                        <span className="text-[11px] font-bold text-indigo-800 uppercase tracking-tight">Mở Settings gốc</span>
+                      </div>
+                      <p className="text-[10px] text-indigo-600 leading-relaxed">
+                        Nhấn biểu tượng <b>Bánh răng</b> ở góc dưới bên trái màn hình nền tảng.
+                      </p>
+                    </div>
+
+                    <div className="bg-white p-3 rounded-2xl border border-indigo-100 space-y-2">
+                      <div className="flex items-center gap-2">
+                        <span className="w-6 h-6 rounded-lg bg-indigo-600 text-white text-[11px] flex items-center justify-center font-bold">2</span>
+                        <span className="text-[11px] font-bold text-indigo-800 uppercase tracking-tight">Thêm Secret</span>
+                      </div>
+                      <p className="text-[10px] text-indigo-600 leading-relaxed">
+                        Vào tab <b>"Secrets"</b>, nhấn <b>"Add Secret"</b>.
+                      </p>
+                    </div>
+
+                    <div className="bg-white p-3 rounded-2xl border border-indigo-100 space-y-2">
+                      <div className="flex items-center gap-2">
+                        <span className="w-6 h-6 rounded-lg bg-indigo-600 text-white text-[11px] flex items-center justify-center font-bold">3</span>
+                        <span className="text-[11px] font-bold text-indigo-800 uppercase tracking-tight">Điền Key</span>
+                      </div>
+                      <p className="text-[10px] text-indigo-600 leading-relaxed">
+                        Key: <code className="bg-indigo-100 px-1 rounded font-black">GEMINI_API_KEY</code>. <br/>
+                        Value: Dán mã API bạn có.
+                      </p>
+                    </div>
+
+                    <div className="bg-blue-600 p-3 rounded-2xl space-y-2 shadow-lg shadow-blue-100">
+                      <div className="flex items-center gap-2">
+                        <span className="w-6 h-6 rounded-lg bg-white text-blue-600 text-[11px] flex items-center justify-center font-bold">4</span>
+                        <span className="text-[11px] font-bold text-white uppercase tracking-tight">Lưu & Deploy</span>
+                      </div>
+                      <p className="text-[10px] text-blue-50 leading-relaxed font-medium">
+                        Bắt buộc: Nhấn <b>SAVE</b> (màu xanh) và nhấn <b>DEPLOY</b> sau đó.
+                      </p>
+                    </div>
                   </div>
                 </div>
 
@@ -2604,6 +3103,30 @@ export default function App() {
               <div className="flex-grow flex overflow-hidden">
                 {/* Sidebar Navigation */}
                 <div className="w-64 bg-gray-50 border-r border-gray-100 overflow-y-auto p-4 flex flex-col gap-1">
+                  <div className="mb-2">
+                    <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-3">Loại thư viện</span>
+                  </div>
+                  <div className="flex bg-gray-100 p-1 rounded-xl mx-2 mb-6 shadow-inner">
+                    <button
+                      onClick={() => setBankPeriodType("regular")}
+                      className={cn(
+                        "flex-grow py-2 rounded-lg text-[10px] font-bold transition-all relative z-10",
+                        bankPeriodType === "regular" ? "bg-white text-blue-600 shadow-sm" : "text-gray-500 hover:text-gray-700"
+                      )}
+                    >
+                      Hằng kỳ
+                    </button>
+                    <button
+                      onClick={() => setBankPeriodType("yearEnd")}
+                      className={cn(
+                        "flex-grow py-2 rounded-lg text-[10px] font-bold transition-all relative z-10",
+                        bankPeriodType === "yearEnd" ? "bg-white text-orange-600 shadow-sm" : "text-gray-500 hover:text-gray-700"
+                      )}
+                    >
+                      Cuối năm
+                    </button>
+                  </div>
+
                   <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-3 mb-2">Môn học</span>
                   {Object.keys(bankSubjects).map(sub => (
                     <div key={sub} className="flex items-center gap-1 group">
@@ -2796,20 +3319,24 @@ export default function App() {
                             <div 
                               key={item.id} 
                               className={cn(
-                                "flex gap-4 group items-start p-4 rounded-3xl border transition-all",
+                                "flex gap-4 group items-start p-4 rounded-3xl border-2 transition-all",
                                 aiConfig.foundationalComments?.includes(item.text) 
-                                  ? "bg-purple-50 border-purple-300 ring-2 ring-purple-100" 
-                                  : "bg-pink-50/20 border-pink-100/50"
+                                  ? "bg-purple-50 border-purple-500 ring-4 ring-purple-100" 
+                                  : "bg-white border-indigo-400 shadow-sm shadow-indigo-50"
                               )}
                             >
                               <div className="flex-grow space-y-2">
                                 <div className="flex items-center justify-between">
                                   <div className="flex items-center gap-2">
+                                    <div className="flex items-center gap-1.5 bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded-full text-[9px] font-black border border-indigo-100">
+                                      <User size={10} />
+                                      CÁ NHÂN
+                                    </div>
                                     <input 
                                       type="text"
                                       value={item.category}
                                       onChange={(e) => updatePersonalComment(item.id, item.text, e.target.value)}
-                                      className="text-[10px] font-black uppercase text-pink-400 bg-white border border-pink-50 px-2 py-0.5 rounded-full outline-none focus:border-pink-200"
+                                      className="text-[10px] font-black uppercase text-pink-400 bg-pink-50/50 border border-pink-100 px-2 py-0.5 rounded-full outline-none focus:border-pink-200"
                                       placeholder="Nhóm..."
                                     />
                                   </div>
@@ -2970,20 +3497,26 @@ export default function App() {
                             <Book size={24} />
                           </div>
                           <div>
-                            <h4 className="text-xl font-bold text-gray-800">{subject}</h4>
-                            <div className="flex gap-2 mt-1">
-                              {["1", "2", "3", "4", "5", "general"].map(lvl => (
-                                <button
-                                  key={lvl}
-                                  onClick={() => setGradeLevel(lvl)}
-                                  className={cn(
-                                    "px-3 py-1 rounded-full text-[10px] font-bold border transition-all",
-                                    gradeLevel === lvl ? "bg-blue-600 border-blue-600 text-white" : "bg-white border-gray-200 text-gray-500"
-                                  )}
-                                >
-                                  {lvl === "general" ? "Chung" : `Khối ${lvl}`}
-                                </button>
-                              ))}
+                            <h4 className="text-xl font-bold text-gray-800">
+                              {bankPeriodType === "yearEnd" ? `${subject} - Nhận xét Cuối năm` : subject}
+                            </h4>
+                            <div className="flex items-center gap-4 mt-1">
+                              <div className="flex gap-1.5">
+                                {["1", "2", "3", "4", "5", "general"].map(lvl => (
+                                  <button
+                                    key={lvl}
+                                    onClick={() => setGradeLevel(lvl)}
+                                    className={cn(
+                                      "px-3 py-1 rounded-full text-[10px] font-bold border transition-all",
+                                      gradeLevel === lvl 
+                                        ? (bankPeriodType === 'yearEnd' ? "bg-orange-600 border-orange-600 text-white" : "bg-blue-600 border-blue-600 text-white") 
+                                        : "bg-white border-gray-200 text-gray-500"
+                                    )}
+                                  >
+                                    {lvl === "general" ? "Chung" : `Khối ${lvl}`}
+                                  </button>
+                                ))}
+                              </div>
                             </div>
                           </div>
                         </div>
@@ -2992,17 +3525,29 @@ export default function App() {
                       {(["excellent", "good", "fair", "poor"] as const).map(cat => {
                         const currentBank = bankSubjects[subject] || {};
                         const gradeData = currentBank[gradeLevel] || currentBank["general"] || { excellent: [], good: [], fair: [], poor: [] };
-                        const list = gradeData[cat] || [];
+                        
+                        let list: string[] = [];
+                        if (bankPeriodType === "yearEnd") {
+                          const yearEndData = (gradeData as any).yearEnd || { excellent: [], good: [], fair: [], poor: [] };
+                          list = yearEndData[cat] || [];
+                        } else {
+                          list = gradeData[cat] || [];
+                        }
 
                         return (
                           <div key={cat} className="space-y-4">
                             <h5 className={cn(
-                              "text-xs font-black uppercase tracking-wider",
+                              "text-xs font-black uppercase tracking-wider flex items-center gap-2",
                               cat === 'excellent' ? "text-green-600" : cat === 'good' ? "text-blue-600" : cat === 'fair' ? "text-amber-600" : "text-red-600"
                             )}>
-                              {cat === 'excellent' ? 'Hoàn thành tốt (9-10)' : 
-                               cat === 'good' ? 'Khá - Tốt (7-8)' : 
-                               cat === 'fair' ? 'Đạt (5-6)' : 'Cần cố gắng (<5)'}
+                              <div className={cn(
+                                "w-2 h-2 rounded-full",
+                                cat === 'excellent' ? "bg-green-500" : cat === 'good' ? "bg-blue-500" : cat === 'fair' ? "bg-amber-500" : "bg-red-500"
+                              )} />
+                              {cat === 'excellent' ? (bankPeriodType === 'yearEnd' ? 'Hoàn thành tốt (HT tốt)' : 'Hoàn thành tốt (9-10)') : 
+                               cat === 'good' ? (bankPeriodType === 'yearEnd' ? 'Hoàn thành - HT (Mức 1)' : 'Khá - Tốt (7-8)') : 
+                               cat === 'fair' ? (bankPeriodType === 'yearEnd' ? 'Hoàn thành - HT (Mức 2)' : 'Đạt (5-6)') : 
+                               (bankPeriodType === 'yearEnd' ? 'Chưa hoàn thành (CHT)' : 'Cần cố gắng (<5)')}
                             </h5>
                             <div className="grid gap-3">
                               {list.map((item, idx) => (
@@ -3014,10 +3559,19 @@ export default function App() {
                                         const newSubjects = { ...bankSubjects };
                                         const subData = { ...newSubjects[subject] };
                                         const lvlData = { ...subData[gradeLevel] || subData["general"] };
-                                        const catData = [...(lvlData[cat] || [])];
-                                        catData[idx] = e.target.value;
                                         
-                                        lvlData[cat] = catData;
+                                        if (bankPeriodType === "yearEnd") {
+                                          const yearEndData = { ...((lvlData as any).yearEnd || { excellent: [], good: [], fair: [], poor: [] }) };
+                                          const catData = [...(yearEndData[cat] || [])];
+                                          catData[idx] = e.target.value;
+                                          yearEndData[cat] = catData;
+                                          (lvlData as any).yearEnd = yearEndData;
+                                        } else {
+                                          const catData = [...(lvlData[cat] || [])];
+                                          catData[idx] = e.target.value;
+                                          lvlData[cat] = catData;
+                                        }
+                                        
                                         subData[gradeLevel] = lvlData;
                                         newSubjects[subject] = subData;
                                         setBankSubjects(newSubjects);
@@ -3035,9 +3589,15 @@ export default function App() {
                                           const newSubjects = { ...bankSubjects };
                                           const subData = { ...newSubjects[subject] };
                                           const lvlData = { ...subData[gradeLevel] || subData["general"] };
-                                          const catData = (lvlData[cat] || []).filter((_, i) => i !== idx);
                                           
-                                          lvlData[cat] = catData;
+                                          if (bankPeriodType === "yearEnd") {
+                                            const yearEndData = { ...((lvlData as any).yearEnd || { excellent: [], good: [], fair: [], poor: [] }) };
+                                            yearEndData[cat] = yearEndData[cat].filter((_: any, i: number) => i !== idx);
+                                            (lvlData as any).yearEnd = yearEndData;
+                                          } else {
+                                            lvlData[cat] = (lvlData[cat] || []).filter((_: any, i: number) => i !== idx);
+                                          }
+
                                           subData[gradeLevel] = lvlData;
                                           newSubjects[subject] = subData;
                                           setBankSubjects(newSubjects);
@@ -3081,17 +3641,28 @@ export default function App() {
                                   if (!newSubjects[subject]) newSubjects[subject] = {};
                                   const subData = { ...newSubjects[subject] };
                                   const lvlData = { ...(subData[gradeLevel] || subData["general"] || { excellent: [], good: [], fair: [], poor: [] }) };
-                                  const catData = [...(lvlData[cat] || []), ""];
-                                  
-                                  lvlData[cat] = catData;
+
+                                  if (bankPeriodType === "yearEnd") {
+                                    const yearEndData = { ...((lvlData as any).yearEnd || { excellent: [], good: [], fair: [], poor: [] }) };
+                                    yearEndData[cat] = [...(yearEndData[cat] || []), ""];
+                                    (lvlData as any).yearEnd = yearEndData;
+                                  } else {
+                                    lvlData[cat] = [...(lvlData[cat] || []), ""];
+                                  }
+
                                   subData[gradeLevel] = lvlData;
                                   newSubjects[subject] = subData;
                                   setBankSubjects(newSubjects);
                                 }}
-                                className="w-full py-3 border-2 border-dashed border-gray-100 rounded-xl text-gray-400 hover:border-blue-200 hover:text-blue-500 hover:bg-blue-50 text-xs font-bold flex items-center justify-center gap-2 transition-all"
+                                className={cn(
+                                  "w-full py-3 border-2 border-dashed rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-all",
+                                  bankPeriodType === 'yearEnd' 
+                                    ? "border-orange-100 text-orange-400 hover:border-orange-300 hover:text-orange-500 hover:bg-orange-50"
+                                    : "border-gray-100 text-gray-400 hover:border-blue-200 hover:text-blue-500 hover:bg-blue-50"
+                                )}
                               >
                                 <PlusCircle size={16} />
-                                Thêm nhận xét mới
+                                Thêm nhận xét {bankPeriodType === 'yearEnd' ? 'cuối năm' : 'mới'}
                               </button>
                             </div>
                           </div>
