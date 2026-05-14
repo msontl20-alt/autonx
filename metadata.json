@@ -1,0 +1,6 @@
+{
+  "name": "autovnedu1",
+  "description": "Phần mềm hỗ trợ giáo viên tiểu học tạo nhận xét học bạ tự động theo Thông tư 27, tích hợp file Excel từ vnEdu.",
+  "requestFramePermissions": [],
+  "majorCapabilities": []
+}
